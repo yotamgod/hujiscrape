@@ -7,7 +7,7 @@ class HujiObject:
 
 
 @dataclass
-class Lesson:
+class Lesson(HujiObject):
     location: str
     passing_type: str  # Meaning in campus / video taped etc...
     time: str
@@ -15,7 +15,7 @@ class Lesson:
     semester: str
     group: str
     type: str
-    lecturers: str
+    lecturers: List[str]
 
 
 @dataclass
@@ -25,6 +25,8 @@ class Course(HujiObject):
     english_name: str
     hebrew_name: str
     points: int
+    semester: str
+    language: str
     test_length: int
     test_type: str
     schedule: List[Lesson]

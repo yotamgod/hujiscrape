@@ -1,10 +1,12 @@
 import asyncio
+from dataclasses import asdict
 
 from bs4 import BeautifulSoup
 import re
 import json
 
-from raw_suppliers import RequestCourseSupplier
+from raw_suppliers import RequestCourseSupplier, MaslulPageSupplier, MaslulAllPageSupplier
+
 
 # def extract_course_info(course_element):
 #     title_element = course_element.select_one('.courseTitle')
@@ -72,8 +74,14 @@ from raw_suppliers import RequestCourseSupplier
 
 async def test():
     s = RequestCourseSupplier("67504", 2024)
-    return await s.supply()
+    course = await s.supply()
+    print(json.dumps(asdict(course), indent=2, ensure_ascii=False))
+
+async def test_maslul():
+    s = MaslulAllPageSupplier(2024, 10, 20, 'wow')
+    courses = await s.supply()
+    print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
 
 if __name__ == '__main__':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(test())
+    asyncio.run(test_maslul())

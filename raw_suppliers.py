@@ -1,14 +1,15 @@
+import asyncio
 import re
 from functools import partial
 from typing import Any, Union, List
 
+import aiohttp
 from bs4 import BeautifulSoup, Tag
 
 from collectors import ShantonCourseFetcher, MaslulFetcher
+from html_to_object import HtmlToCourse, Bs4Obj
 from huji_objects import Course, Lesson
-from magics import YEAR_ANY, TOAR_ANY
-
-Bs4Obj = Union[BeautifulSoup, Tag]
+from magics import YEAR_ANY, TOAR_ANY, PASSING_TYPE_IDX
 
 
 class RawSupplier:
@@ -29,7 +30,7 @@ class CourseSupplier(RawSupplier):
     Supplies the html for a lecture in the Shnaton, between <a> tags.
     """
 
-    async def supply(self) -> Bs4Obj:
+    async def supply(self) -> Course:
         raise NotImplementedError()
 
 
@@ -51,47 +52,74 @@ class RequestCourseSupplier(CourseSupplier):
     def __init__(self, course_id: str, year: int):
         self._course_id_ = course_id
         self._course_fetcher = ShantonCourseFetcher(year, course_id)
+        self._html_to_course = HtmlToCourse()
 
     async def supply(self) -> Course:
         soup = await self._course_fetcher.acollect()
-        faculty_div = soup.find('div', class_='courseTitle')
-        faculty = faculty_div.text.strip()
-        course_table = faculty_div.find_next('table')
-        english_course_name, hebrew_course_name, course_id = [b.text.strip() for b in course_table.find_all('b')]
-        course_id = re.search(r'\d+', course_id).group()
-        course_details_table = course_table.find_next('table')
-        test_length, test_type, unknown_field, points, semesters, empty_field = [td.text.strip() for td in
-                                                                                 course_details_table.find_all('td')]
-        details_table = soup.find('div', id=re.compile('CourseDetails')).find_next('table')
-        # First tr doesn't contain data, and last two are comments
-        detail_rows = details_table.find_all('tr')[1:]
-        schedule_rows, note_rows = detail_rows[:-2], detail_rows[-2:]
-        schedule = []
-        for row in schedule_rows:
-            lesson_tds = row.find_all('td')
-            if not lesson_tds:
-                continue  # TODO: fix issue where there are multiple lectures in a single td
-            lessons_in_group = len([tag for tag in lesson_tds[0].contents if getattr(tag, 'name', None) != 'br'])
-            for idx in range(lessons_in_group):
-                pass
-            lecture_info: List[str] = [td.text.strip() for td in row.find_all('td')]
+        return self._html_to_course.convert(soup)
 
 
-            schedule.append(
-                Lesson(*lecture_info)
-            )
-        hebrew_note, english_note = [row.find_next('td').text.strip() for row in note_rows]
-        return Course(faculty, course_id, english_course_name, hebrew_course_name, points, test_length, test_type,
-                      schedule, hebrew_note, english_note)
+class MaslulSupplier(RawSupplier):
+
+    async def supply(self) -> List[Course]:
+        raise NotImplementedError()
 
 
-class MaslulCourseSuppliers:
+class MaslulPageSupplier(MaslulSupplier):
 
     def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: int = TOAR_ANY,
-                 toar_year: int = YEAR_ANY) -> None:
-        # Create a fetcher without a page set
-        self._maslul_fetcher_partial = partial(MaslulFetcher, year=year, faculty=faculty, hug=hug, maslul=maslul,
-                                               toar=toar, toar_year=toar_year)
+                 toar_year: int = YEAR_ANY, page: int = 1, session: aiohttp.ClientSession = None) -> None:
+        self._maslul_fetcher = MaslulFetcher(year, faculty, hug, maslul, toar, toar_year, page,
+                                             session=session or aiohttp.ClientSession())
+        self._html_to_course = HtmlToCourse()
+
+    async def supply(self) -> List[Course]:
+        soup = await self._maslul_fetcher.acollect()
+        course_tds = [div.parent for div in soup.find_all('div', attrs={'class': 'courseTitle'})]
+        return [self._html_to_course.convert(td) for td in course_tds]
+
+
+class MaslulAllPageSupplier(MaslulSupplier):
+
+    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: int = TOAR_ANY,
+                 toar_year: int = YEAR_ANY, session: aiohttp.ClientSession = None) -> None:
+        self._session = session or aiohttp.ClientSession()
+        self._year = year
+        self._faculty = faculty
+        self._hug = hug
+        self._maslul = maslul
+        self._toar = toar
+        self._toar_year = toar_year
+
+        # Using a fetcher to find the number of pages to download
+        self._page_1_maslul_fetcher = MaslulFetcher(year, faculty, hug, maslul, toar, toar_year, 1,
+                                                    session=self._session)
+
+    async def supply(self) -> List[Course]:
+        # Collect the first page to find out the number of pages required
+        soup = await self._page_1_maslul_fetcher.acollect()
+        page_info_text = soup.find('div', class_='facultyTitle').find_next('td').text
+        page_number = int(re.findall(r'\d+', page_info_text)[1])
+        semaphore = asyncio.Semaphore(3)
+        page_supplier_coros = [self._collect_page(page, semaphore)
+                               for page in range(page_number)]
+        page_supplier_tasks = [asyncio.create_task(coro) for coro in page_supplier_coros]
+        results = await asyncio.gather(*page_supplier_tasks)  # TODO: handle errors.
+
+        # Flatten the list of lists of courses
+        return [result for result_list in results for result in result_list]
+
+    async def _collect_page(self, page: int, semaphore: asyncio.Semaphore):
+        """
+        Collects a page using a semaphore to avoid too many requests
+        :param page: page to download
+        :param semaphore: semaphore to use
+        :return:
+        """
+        supplier = MaslulPageSupplier(self._year, self._faculty, self._hug, self._maslul,
+                                      self._toar, self._toar_year, page, session=self._session)
+        async with semaphore:
+            return await supplier.supply()
 
 
 class ExamSupplier(RawSupplier):
