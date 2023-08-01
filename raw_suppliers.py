@@ -1,15 +1,13 @@
 import asyncio
 import re
-from functools import partial
-from typing import Any, Union, List
+from typing import Any, List
 
 import aiohttp
-from bs4 import BeautifulSoup, Tag
 
-from collectors import ShantonCourseFetcher, MaslulFetcher
-from html_to_object import HtmlToCourse, Bs4Obj
-from huji_objects import Course, Lesson
-from magics import YEAR_ANY, TOAR_ANY, PASSING_TYPE_IDX
+from collectors import ShantonCourseFetcher, MaslulFetcher, ExamFetcher
+from html_to_object import HtmlToCourse
+from huji_objects import Course, Exam
+from magics import Toar, ToarYear
 
 
 class RawSupplier:
@@ -67,8 +65,8 @@ class MaslulSupplier(RawSupplier):
 
 class MaslulPageSupplier(MaslulSupplier):
 
-    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: int = TOAR_ANY,
-                 toar_year: int = YEAR_ANY, page: int = 1, session: aiohttp.ClientSession = None) -> None:
+    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: Toar = Toar.Any,
+                 toar_year: ToarYear = ToarYear.Any, page: int = 1, session: aiohttp.ClientSession = None) -> None:
         self._maslul_fetcher = MaslulFetcher(year, faculty, hug, maslul, toar, toar_year, page,
                                              session=session or aiohttp.ClientSession())
         self._html_to_course = HtmlToCourse()
@@ -81,8 +79,8 @@ class MaslulPageSupplier(MaslulSupplier):
 
 class MaslulAllPageSupplier(MaslulSupplier):
 
-    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: int = TOAR_ANY,
-                 toar_year: int = YEAR_ANY, session: aiohttp.ClientSession = None) -> None:
+    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: Toar = Toar.Any,
+                 toar_year: ToarYear = ToarYear.Any, session: aiohttp.ClientSession = None) -> None:
         self._session = session or aiohttp.ClientSession()
         self._year = year
         self._faculty = faculty
@@ -100,7 +98,7 @@ class MaslulAllPageSupplier(MaslulSupplier):
         soup = await self._page_1_maslul_fetcher.acollect()
         page_info_text = soup.find('div', class_='facultyTitle').find_next('td').text
         page_number = int(re.findall(r'\d+', page_info_text)[1])
-        semaphore = asyncio.Semaphore(3)
+        semaphore = asyncio.Semaphore(10)
         page_supplier_coros = [self._collect_page(page, semaphore)
                                for page in range(page_number)]
         page_supplier_tasks = [asyncio.create_task(coro) for coro in page_supplier_coros]
@@ -127,5 +125,8 @@ class ExamSupplier(RawSupplier):
     Supplies the exam info html for a course.
     """
 
-    async def supply(self) -> Bs4Obj:
+    def __init__(self, course_id: str, year: int) -> None:
+        self._exam_fetcher = ExamFetcher(year, course_id)
+
+    async def supply(self) -> List[Exam]:
         raise NotImplementedError()

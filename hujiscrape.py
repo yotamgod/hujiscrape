@@ -1,87 +1,54 @@
+import argparse
 import asyncio
 from dataclasses import asdict
 
-from bs4 import BeautifulSoup
-import re
+import aiohttp
 import json
 
 from raw_suppliers import RequestCourseSupplier, MaslulPageSupplier, MaslulAllPageSupplier
+from magics import *
 
-
-# def extract_course_info(course_element):
-#     title_element = course_element.select_one('.courseTitle')
-#     english_title_element = title_element.find_next('b')
-#     hebrew_title_element = english_title_element.find_next('b')
-#     course_code_element = hebrew_title_element.find_next('b')
-#     english_title = english_title_element.text.strip()
-#     hebrew_title = hebrew_title_element.text.strip()
-#     course_code = re.search(r'\d+', course_code_element.text).group()
-#
-#     # duration = course_element.select_one('.courseTD:nth-child(1)').text.strip()
-#     # exam_type = course_element.select_one('.courseTD:nth-child(2)').text.strip()
-#     # credits = course_element.select_one('.courseTD:nth-child(3)').text.strip()
-#     # points = course_element.select_one('.courseTD:nth-child(4)').text.strip()
-#     # semester = course_element.select_one('.courseTD:nth-child(5)').text.strip()
-#     # lecturer = course_element.select_one('.courseTD:nth-child(8)').text.strip()
-#
-#     schedule_rows = course_element.find_all('#details{} tr'.format(course_code))
-#     schedule = []
-#     for row in schedule_rows[1:]:  # Skip the header row
-#         columns = row.select('td.courseDet.text')
-#         location = columns[0].text.strip()
-#         lesson_type = columns[6].text.strip()
-#         time = columns[2].text.strip()
-#         day = columns[3].text.strip()
-#         group = columns[5].text.strip()
-#         schedule.append({
-#             'location': location,
-#             'type': lesson_type,
-#             'time': time,
-#             'day': day,
-#             # 'semester': semester,
-#             'group': group,
-#             'lessonType': 'שעור' if lesson_type == 'שעור' else 'תרג',  # Assuming "שעור" or "תרג" in the lesson type
-#             # 'lecturer': lecturer
-#         })
-#
-#     note = course_element.select_one('.courseDet.text[style="padding-right:10px;text-align:right"]').text.strip()
-#
-#     return {
-#         'courseTitle': english_title,
-#         'courseEnglishTitle': english_title,
-#         'courseHebrewTitle': hebrew_title,
-#         'courseCode': course_code,
-#         # 'duration': duration,
-#         # 'examType': exam_type,
-#         'credits': credits,
-#         # 'points': points,
-#         # 'semester': semester,
-#         # 'lecturer': lecturer,
-#         'schedule': schedule,
-#         'note': note,
-#     }
-#
-# def convert_html_to_json(html_data):
-#     soup = BeautifulSoup(html_data, 'html.parser')
-#     courses = soup.find_all('div', class_='courseTitle')
-#     course_info_list = [extract_course_info(course.parent) for course in courses]
-#     return json.dumps(course_info_list, ensure_ascii=False, indent=2)
-
-
-# # Call the function to get the JSON string
-# json_data = convert_html_to_json(html_data)
-# print(json_data)
 
 async def test():
-    s = RequestCourseSupplier("67504", 2024)
+    s = RequestCourseSupplier("67562", 2024)
     course = await s.supply()
     print(json.dumps(asdict(course), indent=2, ensure_ascii=False))
 
+
 async def test_maslul():
-    s = MaslulAllPageSupplier(2024, 10, 20, 'wow')
-    courses = await s.supply()
-    print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
+    connector = aiohttp.TCPConnector(force_close=True)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        s = MaslulAllPageSupplier(2024, '12', '0532', '3080', session=session)
+        courses = await s.supply()
+        print(f"Normal: {len(courses)}, Dedup: {len(set(courses))}")
+        # print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-y', '--year', type=int, required=True)
+    courses = parser.add_mutually_exclusive_group(required=True)
+    courses.add_argument('-c', '--courses', nargs='+')
+    courses.add_argument('-m', '--maslul', type=int)
+    parser.add_argument('--faculty', type=int)
+    parser.add_argument('--hug', type=str)
+    parser.add_argument('-t', '--toar', type=Toar, choices=list(Toar), default=Toar.Any,
+                        help="The type of degree (boger,...). "
+                             "Default is all degrees.")
+    parser.add_argument('-s', '--shana', default=ToarYear.Any, help="Year of the maslul to download. "
+                                                                    "If not specified will download all.")
+    parser.add_argument('-p', '--page', type=int, help="Page to download in the maslul. "
+                                                       "If not specified will be all pages.")
+    parser.add_argument('-o', '--output', required=False, help="Output file for the scraped courses. "
+                                                               "If not specified will be printed to stdout.")
+    # parser.add_argument('-v', '--verbose', action='store_true')
+    args = parser.parse_args()
+
+    if args.maslul and (args.faculty is None or args.hug is None):
+        parser.error("If --maslul is specified, --faculty and --hug need to be specified as well.")
+
+
 
 if __name__ == '__main__':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    asyncio.run(test_maslul())
+    main()

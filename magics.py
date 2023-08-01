@@ -1,17 +1,27 @@
 # Shnaton page course verbosity
-PRISA_MINIMAL = 0
-PRISA_MEDIUM = 1
-PRISA_MAXIMAL = 2
+import enum
+
+
+class Prisa(enum.IntEnum):
+    Minimal = 0
+    Medium = 1
+    Maximal = 2
+
 
 # Type of degree
-TOAR_ANY = 0
-TOAR_BOGER = 1
+class Toar(enum.IntEnum):
+    Any = 0
+    Boger = 1
+
 
 # Year in the toar
-YEAR_ANY = 0
-YEAR_1 = 1
-YEAR_2 = 2
-YEAR_3 = 3
+class ToarYear(enum.IntEnum):
+    Any = 0
+    First = 1
+    Second = 2
+    Third = 3
+    Fourth = 4
+
 
 # Lesson table indexes
 LOCATION_IDX = 0

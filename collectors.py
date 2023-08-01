@@ -1,10 +1,9 @@
-import http
-from typing import Optional, Union, List, Dict
+from typing import Optional
 
 import aiohttp as aiohttp
 from bs4 import BeautifulSoup
 
-from magics import PRISA_MAXIMAL, TOAR_BOGER, TOAR_ANY, YEAR_ANY
+from magics import Prisa, Toar, ToarYear
 
 
 class ShnatonFetcher:
@@ -26,7 +25,7 @@ class ShnatonFetcher:
         return {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/93.0.4577.63 Safari/537.36'}
+                          'Chrome/114.0.0.0 Safari/537.36'}
 
     async def acollect(self) -> Optional[BeautifulSoup]:
         response = await self._session.request(self.method, self.url,
@@ -37,7 +36,8 @@ class ShnatonFetcher:
         # if response.status != http.HTTPStatus.OK:
         #     return None
         # todo: handle errors
-        return BeautifulSoup(await response.text(), 'html5lib')
+        text = await response.text()
+        return BeautifulSoup(text, 'html.parser')
         # return await self._parse_response(response)
 
     # async def _parse_response(self, response: aiohttp.ClientResponse) -> Union[List, Dict]:
@@ -45,8 +45,9 @@ class ShnatonFetcher:
 
 
 class ShantonCourseFetcher(ShnatonFetcher):
-    # SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
-    SHNATON_URL = 'http://localhost:8080/Course.html'
+    SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
+
+    # SHNATON_URL = 'http://localhost:8080/Course.html'
 
     def __init__(self, year: int, course: str, headers: dict = None, session: aiohttp.ClientSession = None):
         data = {
@@ -57,8 +58,8 @@ class ShantonCourseFetcher(ShnatonFetcher):
             'course': course
         }
 
-        # super().__init__('POST', self.SHNATON_URL, headers=headers, data=data, async_session=async_session)
-        super().__init__('GET', self.SHNATON_URL, headers=headers, data=data, session=session)
+        super().__init__('POST', self.SHNATON_URL, headers=headers, data=data, session=session)
+        # super().__init__('GET', self.SHNATON_URL, headers=headers, data=data, session=session)
 
 
 class MaslulFetcher(ShnatonFetcher):
@@ -66,13 +67,13 @@ class MaslulFetcher(ShnatonFetcher):
     Returns a single page from a maslul search
     """
 
-    # SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
-    # SHNATON_URL = 'http://localhost:8080/maslul.html'
-    SHNATON_URL = 'http://localhost:8080/OtherFolder/MaslulNoJs.html'
+    SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
 
-    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: int = TOAR_ANY,
-                 toar_year: int = YEAR_ANY, page: int = 1,
-                 headers: dict = None, params: dict = None,
+    # SHNATON_URL = 'http://localhost:8080/maslul.html'
+    # SHNATON_URL = 'http://localhost:8080/OtherFolder/MaslulNoJs.html'
+
+    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: Toar = Toar.Any,
+                 toar_year: ToarYear = ToarYear.Any, page: int = 1,
                  session: aiohttp.ClientSession = None):
         data = {
             'peula': 'Advanced',
@@ -80,10 +81,23 @@ class MaslulFetcher(ShnatonFetcher):
             'faculty': faculty,
             'hug': hug,
             'maslul': maslul,
-            'prisa': PRISA_MAXIMAL,
+            'prisa': Prisa.Maximal,
             'toar': toar,
             'shana': toar_year,
             'starting': page
         }
-        # super().__init__('POST', self.SHNATON_URL, headers, data, params, session=session)
-        super().__init__('GET', self.SHNATON_URL, headers, data, params, session=session)
+        super().__init__('POST', self.SHNATON_URL, data=data, session=session)
+        # super().__init__('GET', self.SHNATON_URL, headers, data, params, session=session)
+
+
+class ExamFetcher(ShnatonFetcher):
+    SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
+
+    def __init__(self, year: int, course: str, session: aiohttp.ClientSession = None):
+        data = {
+            'peula': 'CourseD',
+            'year': year,
+            'detail': 'examDates',
+            'course': course
+        }
+        super().__init__('POST', self.SHNATON_URL, data=data, session=session)
