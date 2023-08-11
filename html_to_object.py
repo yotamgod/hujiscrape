@@ -3,7 +3,7 @@ from typing import Union, List
 
 from bs4 import BeautifulSoup, Tag, NavigableString
 
-from huji_objects import HujiObject, Lesson, Course
+from huji_objects import HujiObject, Lesson, Course, Exam
 from magics import PASSING_TYPE_IDX, LOCATION_IDX, TIME_IDX, DAY_IDX, SEMESTER_IDX, GROUP_IDX, LESSON_TYPE_IDX, \
     LECTURER_IDX
 
@@ -57,14 +57,11 @@ class HtmlToCourse(HtmlToObject):
             continue
         return text_list
 
-    def _extract_lesson_locations(self, td_tag: Tag):
-        pass
-
     def convert(self, html: Bs4Obj) -> Course:
         faculty_div = html.find('div', class_='courseTitle')
         faculty = faculty_div.text.strip()
         course_table = faculty_div.find_next('table')
-        print([b.text.strip() for b in course_table.find_all('b')])
+
         # If the course isn't running this year, there will be a red <b> tag here
         english_course_name, hebrew_course_name, course_id = [b.text.strip() for b in course_table.find_all('b') if
                                                               b.parent.name != 'font']
@@ -74,6 +71,9 @@ class HtmlToCourse(HtmlToObject):
         course_details_table = course_table.find_next('table')
         test_length, test_type, unknown_field, points, semester, language = [td.text.strip() for td in
                                                                              course_details_table.find_all('td')]
+        # Extract only number
+        points = int(re.search(r'\d+', points).group())
+
         details_table = html.find('div', id=re.compile('CourseDetails')).find_next('table')
         # First tr doesn't contain data, and last two are comments
         detail_rows = details_table.find_all('tr')[1:]
@@ -112,6 +112,30 @@ class HtmlToCourse(HtmlToObject):
                     )
                 )
 
-        hebrew_note, english_note = [row.find_next('td').text.strip() for row in note_rows] if note_rows else ['', '']
-        return Course(faculty, course_id, english_course_name, hebrew_course_name, points, semester, language,
-                      test_length, test_type, schedule, hebrew_note, english_note, is_running)
+        hebrew_notes, english_notes = [row.find_next('td').text.strip() for row in note_rows] if note_rows else ['', '']
+        return Course(faculty=faculty,
+                      course_id=course_id,
+                      english_name=english_course_name,
+                      hebrew_name=hebrew_course_name,
+                      points=points,
+                      semester=semester,
+                      language=language,
+                      test_length=test_length,
+                      test_type=test_type,
+                      schedule=schedule,
+                      exams=None,
+                      hebrew_notes=hebrew_notes,
+                      english_notes=english_notes,
+                      is_running=is_running)
+
+
+class HtmlToExams(HtmlToObject):
+    def convert(self, html: Bs4Obj) -> List[Exam]:
+        exam_table = html.find('table').find('table')
+        exams = []
+        for tr in exam_table.find_all('tr')[4:]:
+            exam_date, exam_hour, exam_notes, location, moed, semester = [td.text for td in tr.find_all('td')]
+            exams.append(
+                Exam(exam_date, exam_hour, exam_notes, location, moed, semester)
+            )
+        return exams

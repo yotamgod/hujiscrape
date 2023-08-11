@@ -1,27 +1,40 @@
 import argparse
 import asyncio
+import time
 from dataclasses import asdict
 
 import aiohttp
 import json
 
-from raw_suppliers import RequestCourseSupplier, MaslulPageSupplier, MaslulAllPageSupplier
+from raw_suppliers import MaslulPageSupplier, MaslulAllPageSupplier, ExamSupplier, CourseSupplier
 from magics import *
 
 
 async def test():
-    s = RequestCourseSupplier("67562", 2024)
-    course = await s.supply()
-    print(json.dumps(asdict(course), indent=2, ensure_ascii=False))
+    async with aiohttp.ClientSession() as session:
+        s = CourseSupplier(["67562"], 2024, session, include_exams=False)
+        course = await s.supply()
+        print(json.dumps(asdict(course[0]), indent=2, ensure_ascii=False))
 
 
 async def test_maslul():
+    before = time.time()
+    connector = aiohttp.TCPConnector(limit=50)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        s = MaslulPageSupplier(2024, '12', '0532', '3080', toar=Toar.Boger, toar_year=ToarYear.First,
+                               page=5, session=session, include_exams=False)
+        courses = await s.supply()
+        # print(f"Normal: {len(courses)}, Dedup: {len(set(courses))}")
+        print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
+
+    print(time.time() - before)
+
+
+async def test_exam():
     connector = aiohttp.TCPConnector(force_close=True)
     async with aiohttp.ClientSession(connector=connector) as session:
-        s = MaslulAllPageSupplier(2024, '12', '0532', '3080', session=session)
-        courses = await s.supply()
-        print(f"Normal: {len(courses)}, Dedup: {len(set(courses))}")
-        # print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
+        s = ExamSupplier('80131', 2024, session)
+        print(json.dumps([asdict(k) for k in await s.supply()], indent=2))
 
 
 def main():
@@ -48,7 +61,7 @@ def main():
         parser.error("If --maslul is specified, --faculty and --hug need to be specified as well.")
 
 
-
 if __name__ == '__main__':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    main()
+    asyncio.run(test_maslul())
+    # main()

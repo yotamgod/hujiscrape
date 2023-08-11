@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 import aiohttp as aiohttp
@@ -25,41 +26,36 @@ class ShnatonFetcher:
         return {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                           'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/114.0.0.0 Safari/537.36'}
+                          'Chrome/114.0.0.0 Safari/537.36'
+        }
 
     async def acollect(self) -> Optional[BeautifulSoup]:
+        before = time.time()
         response = await self._session.request(self.method, self.url,
                                                data=self.data,
                                                params=self.params,
                                                headers=self.headers,
-                                               verify_ssl=False)
-        # if response.status != http.HTTPStatus.OK:
-        #     return None
+                                               verify_ssl=False,
+                                               allow_redirects=False)
+        print(f"A collect: {time.time() - before}")
         # todo: handle errors
         text = await response.text()
         return BeautifulSoup(text, 'html.parser')
-        # return await self._parse_response(response)
-
-    # async def _parse_response(self, response: aiohttp.ClientResponse) -> Union[List, Dict]:
-    #     raise NotImplementedError()
 
 
 class ShantonCourseFetcher(ShnatonFetcher):
     SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
 
-    # SHNATON_URL = 'http://localhost:8080/Course.html'
-
-    def __init__(self, year: int, course: str, headers: dict = None, session: aiohttp.ClientSession = None):
+    def __init__(self, course_id: str, year: int, session: aiohttp.ClientSession = None):
         data = {
             'peula': 'Simple',
             'maslul': 0,
             'shana': 0,
             'year': year,
-            'course': course
+            'course': course_id
         }
 
-        super().__init__('POST', self.SHNATON_URL, headers=headers, data=data, session=session)
-        # super().__init__('GET', self.SHNATON_URL, headers=headers, data=data, session=session)
+        super().__init__('POST', self.SHNATON_URL, data=data, session=session)
 
 
 class MaslulFetcher(ShnatonFetcher):
@@ -68,9 +64,6 @@ class MaslulFetcher(ShnatonFetcher):
     """
 
     SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
-
-    # SHNATON_URL = 'http://localhost:8080/maslul.html'
-    # SHNATON_URL = 'http://localhost:8080/OtherFolder/MaslulNoJs.html'
 
     def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: Toar = Toar.Any,
                  toar_year: ToarYear = ToarYear.Any, page: int = 1,
@@ -87,17 +80,16 @@ class MaslulFetcher(ShnatonFetcher):
             'starting': page
         }
         super().__init__('POST', self.SHNATON_URL, data=data, session=session)
-        # super().__init__('GET', self.SHNATON_URL, headers, data, params, session=session)
 
 
 class ExamFetcher(ShnatonFetcher):
     SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
 
-    def __init__(self, year: int, course: str, session: aiohttp.ClientSession = None):
+    def __init__(self, course_id: str, year: int, session: aiohttp.ClientSession = None):
         data = {
             'peula': 'CourseD',
             'year': year,
             'detail': 'examDates',
-            'course': course
+            'course': course_id
         }
         super().__init__('POST', self.SHNATON_URL, data=data, session=session)
