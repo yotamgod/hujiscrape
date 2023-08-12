@@ -37,7 +37,7 @@ class ShnatonFetcher:
                                                headers=self.headers,
                                                verify_ssl=False,
                                                allow_redirects=False)
-        print(f"A collect: {time.time() - before}")
+        print(f"A collect: {time.time() - before}, Response status: {response.status}")
         # todo: handle errors
         text = await response.text()
         return BeautifulSoup(text, 'html.parser')
@@ -74,9 +74,9 @@ class MaslulFetcher(ShnatonFetcher):
             'faculty': faculty,
             'hug': hug,
             'maslul': maslul,
-            'prisa': Prisa.Maximal,
-            'toar': toar,
-            'shana': toar_year,
+            'prisa': Prisa.Maximal.value,
+            'toar': toar.value,
+            'shana': toar_year.value,
             'starting': page
         }
         super().__init__('POST', self.SHNATON_URL, data=data, session=session)

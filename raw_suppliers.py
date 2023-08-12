@@ -1,6 +1,6 @@
 import asyncio
 import re
-from typing import Any, List, Dict, AsyncIterator
+from typing import Any, List, Dict, AsyncIterator, Tuple
 
 import aiohttp
 
@@ -28,21 +28,36 @@ class AbstractCourseSupplier(HujiObjectSupplier):
     def __init__(self, year: int, session: aiohttp.ClientSession = None, semaphore: asyncio.Semaphore = None,
                  include_exams=True) -> None:
         self._year = year
-        self._session = session or aiohttp.ClientSession()
+        self._session = session or aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(limit=self.DEFAULT_SEMAPHORE_SIZE))
         self._semaphore = semaphore or asyncio.Semaphore(self.DEFAULT_SEMAPHORE_SIZE)
         self._include_exams = include_exams
 
     async def supply(self) -> List[Course]:
-        courses = await self._supply()
+        courses = []
 
-        if not self._include_exams:
-            return courses
+        # Add exams to courses if needed
+        exam_tasks = []
 
+        # with asyncio.TaskGroup() as tg:
+        async for course in self._supply():  # ToDO: check how to iterate an async iterator
+            courses.append(course)
+
+            if self._include_exams:
+                exam_tasks.append(
+                    asyncio.create_task(self._add_exams([course]))
+                )
+        await asyncio.gather(*exam_tasks)
+        # courses = await self._supply()
+        #
+        # if not self._include_exams:
+        #     return courses
+        #
         # Add the exams to the courses
-        await self._add_exams(courses)
+        # await self._add_exams(courses)
         return courses
 
-    async def _supply(self) -> List[Course]:
+    async def _supply(self) -> AsyncIterator[Course]:
         raise NotImplementedError()
 
     async def _add_exams(self, courses: List[Course]):
@@ -65,8 +80,8 @@ class AbstractCourseSupplier(HujiObjectSupplier):
         :return:
         """
         exam_supplier = ExamSupplier(course.course_id, self._year, self._session)
-        async with self._semaphore:
-            return await exam_supplier.supply()
+        # async with self._semaphore:
+        return await exam_supplier.supply()
 
 
 class CourseSupplier(AbstractCourseSupplier):
@@ -107,16 +122,17 @@ class MaslulPageSupplier(AbstractCourseSupplier):
         self._page = page
         self._html_to_course = HtmlToCourse()
 
-    async def _supply(self) -> List[Course]:
+    async def _supply(self) -> AsyncIterator[Course]:
         fetcher = MaslulFetcher(self._year, self._faculty, self._hug, self._maslul, self._toar, self._toar_year,
                                 self._page, self._session)
-        import time
-        before = time.time()
+        # import time
+        # before = time.time()
         soup = await fetcher.acollect()
-        print(f"After page request: {time.time() - before}")
+        # print(f"After page request: {time.time() - before}")
         course_tds = [div.parent for div in soup.find_all('div', class_='courseTitle')]
-        courses = [self._html_to_course.convert(td) for td in course_tds]
-        return courses
+        courses = (self._html_to_course.convert(td) for td in course_tds)
+        for course in courses:
+            yield course
 
     def next_page_supplier(self) -> 'MaslulPageSupplier':
         """
@@ -154,36 +170,57 @@ class MaslulAllPageSupplier(AbstractCourseSupplier):
     #     self._page_1_maslul_fetcher = MaslulFetcher(year, faculty, hug, maslul, toar, toar_year, 1,
     #                                                 session=self._session)
 
-    async def _get_page_count(self) -> int:
+    async def _get_page_bounds(self) -> Tuple[int, int]:
         fetcher = MaslulFetcher(self._year, self._faculty, self._hug, self._maslul, self._toar,
                                 self._toar_year, 1, self._session)
         soup = await fetcher.acollect()
-        page_info_text = soup.find('div', class_='facultyTitle').find_next('td').text
-        return int(re.findall(r'\d+', page_info_text)[1])
+        page_info_text = soup.find('div', class_='facultyTitle').find_next('td').text.strip()
 
-    async def _supply(self) -> List[Course]:
+        if not page_info_text:  # Happens if there is only a single page
+            return 1, 1
+        from_page, to_page = [int(number) for number in re.findall(r'\d+', page_info_text)]
+        return from_page, to_page
+
+    async def _supply(self) -> AsyncIterator[Course]:
         # Collect the first page to find out the number of pages required
-        page_count = await self._get_page_count()
+        page_from, page_to = await self._get_page_bounds()
+        course_ids = set()
 
         # TODO: First page will be collected twice, can fix this
-        page_supplier_coros = [self._collect_page(page) for page in range(page_count)]
-        page_supplier_tasks = [asyncio.create_task(coro) for coro in page_supplier_coros]
-        results: List[List[Course]] = await asyncio.gather(*page_supplier_tasks)  # TODO: handle errors.
+        page_supplier_coros = [self._collect_page(page) for page in range(page_from, page_to + 1)]
+        # page_supplier_tasks = [asyncio.create_task(coro) for coro in page_supplier_coros]
+        for task in asyncio.as_completed(page_supplier_coros):
+            course_list = await task
+
+            # Yield only unique courses
+            new_courses = [course for course in course_list if course.course_id not in course_ids]
+            for course in new_courses:
+                course_ids.add(course.course_id)
+                yield course
+
+        # results: List[List[Course]] = await asyncio.gather(*page_supplier_tasks)  # TODO: handle errors.
 
         # Flatten the list of lists of courses, and dedup the courses before returning the list
-        id_to_course = {course.course_id: course for course_list in results for course in course_list}
-        return [course for course in id_to_course.values()]
+        # id_to_course = {course.course_id: course for course_list in results for course in course_list}
+        # return [course for course in id_to_course.values()]
 
     async def _collect_page(self, page: int) -> List[Course]:
         """
-        Collects a page using a semaphore to avoid too many requests
+        Collects a page using the MaslulPageSupplier
         :param page: page to download
-        :return:
+        :return: a list of courses
         """
+        # Only include exams as a part of the current supplier (so they are not added twice).
         supplier = MaslulPageSupplier(self._year, self._faculty, self._hug, self._maslul,
-                                      self._toar, self._toar_year, page, session=self._session)
-        async with self._semaphore:
-            return await supplier.supply()
+                                      self._toar, self._toar_year, page, session=self._session, include_exams=False)
+
+        # async with self._semaphore:
+        print(f"Requesting page: {page}")
+        course_list = await supplier.supply()
+        print(f"Page got: {page}")
+        return course_list
+        # for course in await supplier.supply():
+        #     yield course
 
 
 class ExamSupplier(HujiObjectSupplier):
@@ -203,6 +240,7 @@ class ExamSupplier(HujiObjectSupplier):
 
     async def supply(self) -> List[Exam]:
         fetcher = ExamFetcher(self._course_id, self._year, self._session)
-        async with self._semaphore:
-            soup = await fetcher.acollect()
+        print(f"Requesting exam {self._course_id}")
+        soup = await fetcher.acollect()
+        print(f"Got exam for {self._course_id}")
         return self._html_to_exams.convert(soup)

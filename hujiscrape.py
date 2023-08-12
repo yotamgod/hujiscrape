@@ -19,10 +19,10 @@ async def test():
 
 async def test_maslul():
     before = time.time()
-    connector = aiohttp.TCPConnector(limit=50)
+    connector = aiohttp.TCPConnector(limit=50, force_close=True)
     async with aiohttp.ClientSession(connector=connector) as session:
-        s = MaslulPageSupplier(2024, '12', '0532', '3080', toar=Toar.Boger, toar_year=ToarYear.First,
-                               page=5, session=session, include_exams=False)
+        s = MaslulAllPageSupplier(2024, '12', '0532', '3080', toar=Toar.Boger, toar_year=ToarYear.Any,
+                                  session=session, include_exams=True)
         courses = await s.supply()
         # print(f"Normal: {len(courses)}, Dedup: {len(set(courses))}")
         print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
