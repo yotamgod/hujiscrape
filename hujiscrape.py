@@ -6,26 +6,25 @@ from dataclasses import asdict
 import aiohttp
 import json
 
-from raw_suppliers import MaslulPageSupplier, MaslulAllPageSupplier, ExamSupplier, CourseSupplier
+from raw_suppliers import MaslulPageSupplier, MaslulAllPageSupplier, ExamSupplier, ShnatonCourseSupplier
 from magics import *
 
 
 async def test():
-    async with aiohttp.ClientSession() as session:
-        s = CourseSupplier(["67562"], 2024, session, include_exams=False)
-        course = await s.supply()
-        print(json.dumps(asdict(course[0]), indent=2, ensure_ascii=False))
+    # async with aiohttp.ClientSession() as session:
+    async with ShnatonCourseSupplier(["67562"], 2024, include_exams=False) as supplier:
+        course = await supplier.supply()
+    print(json.dumps(asdict(course[0]), indent=2, ensure_ascii=False))
 
 
 async def test_maslul():
     before = time.time()
     connector = aiohttp.TCPConnector(limit=50, force_close=True)
-    async with aiohttp.ClientSession(connector=connector) as session:
-        s = MaslulAllPageSupplier(2024, '12', '0532', '3080', toar=Toar.Boger, toar_year=ToarYear.Any,
-                                  session=session, include_exams=True)
+    async with MaslulAllPageSupplier(2024, '12', '0532', '3080', toar=Toar.Boger, toar_year=ToarYear.First,
+                                     include_exams=True) as s:
         courses = await s.supply()
         # print(f"Normal: {len(courses)}, Dedup: {len(set(courses))}")
-        print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
+    print(json.dumps([asdict(course) for course in courses], indent=2, ensure_ascii=False))
 
     print(time.time() - before)
 

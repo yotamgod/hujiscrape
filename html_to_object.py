@@ -129,6 +129,15 @@ class HtmlToCourse(HtmlToObject):
                       is_running=is_running)
 
 
+class HtmlPageToCourses(HtmlToObject):
+
+    def convert(self, html: Bs4Obj) -> List[Course]:
+        html_to_course = HtmlToCourse()
+        course_tds = [div.parent for div in html.find_all('div', class_='courseTitle')]
+        courses = [html_to_course.convert(td) for td in course_tds]
+        return courses
+
+
 class HtmlToExams(HtmlToObject):
     def convert(self, html: Bs4Obj) -> List[Exam]:
         exam_table = html.find('table').find('table')

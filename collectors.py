@@ -22,6 +22,8 @@ class ShnatonFetcher:
         self._session: Optional[
             aiohttp.ClientSession] = session or aiohttp.ClientSession()
 
+        self._soup: Optional[BeautifulSoup] = None
+
     def _get_default_headers(self) -> dict:
         return {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -40,7 +42,15 @@ class ShnatonFetcher:
         print(f"A collect: {time.time() - before}, Response status: {response.status}")
         # todo: handle errors
         text = await response.text()
-        return BeautifulSoup(text, 'html.parser')
+        self._soup = BeautifulSoup(text, 'html.parser')
+        return self._soup
+
+    @property
+    def soup(self) -> Optional[BeautifulSoup]:
+        """
+        :return: the last soup collected by the fetcher, None if it wasn't collected yet
+        """
+        return self._soup
 
 
 class ShantonCourseFetcher(ShnatonFetcher):
