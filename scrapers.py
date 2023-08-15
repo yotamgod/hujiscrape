@@ -11,22 +11,22 @@ from huji_objects import Course, Exam
 from magics import Toar, ToarYear
 
 
-class HujiObjectSupplier:
+class HujiObjectScraper:
     """
-    Supplies Shnaton info as the HTML from a response.
+    Scrapes Huji objects as the HTML from a response.
     """
 
-    async def supply(self) -> Any:
+    async def scrape(self) -> Any:
         raise NotImplementedError()
 
-    async def __aenter__(self) -> 'HujiObjectSupplier':
+    async def __aenter__(self) -> 'HujiObjectScraper':
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
 
-class SessionSupplierMixin:
+class SessionScraperMixin:
 
     def __init__(self, *args, session: aiohttp.ClientSession = None, **kwargs) -> None:
         self._session = session or aiohttp.ClientSession()
@@ -40,9 +40,9 @@ class SessionSupplierMixin:
         await self._session.__aexit__(exc_type, exc_val, exc_tb)
 
 
-class ShnatonSupplierMixin(SessionSupplierMixin):
+class ShnatonScraperMixin(SessionScraperMixin):
     """
-    A supplier for data from the shnaton.
+    A scraper for data from the shnaton.
     Includes a session with a limit on the number of concurrent requests.
     """
     DEFAULT_CONCURRENT_REQUESTS = 100
@@ -61,9 +61,9 @@ class ShnatonSupplierMixin(SessionSupplierMixin):
         super().__init__(*args, **kwargs)
 
 
-class AbstractShnatonCourseSupplier(ShnatonSupplierMixin, HujiObjectSupplier):
+class AbstractShnatonCourseScraper(ShnatonScraperMixin, HujiObjectScraper):
     """
-    Abstract class that supplies a list of courses from the shnaton.
+    Abstract class that scrapes a list of courses from the shnaton.
     Includes an option to add exams to output courses.
     """
 
@@ -73,13 +73,13 @@ class AbstractShnatonCourseSupplier(ShnatonSupplierMixin, HujiObjectSupplier):
         self._year = year
         self._include_exams = include_exams
 
-    async def supply(self) -> List[Course]:
+    async def scrape(self) -> List[Course]:
         courses = []
 
         # Add exams to courses if needed
         exam_tasks = []
 
-        async for course in self._supply():
+        async for course in self._scrape():
             courses.append(course)
 
             if self._include_exams:
@@ -89,13 +89,12 @@ class AbstractShnatonCourseSupplier(ShnatonSupplierMixin, HujiObjectSupplier):
         await asyncio.gather(*exam_tasks)
         return courses
 
-    async def _supply(self) -> AsyncIterator[Course]:
+    async def _scrape(self) -> AsyncIterator[Course]:
         raise NotImplementedError()
 
     async def _add_exams(self, courses: List[Course]):
         """
         A generic method to supply exams.
-        If using to collect exams for multiple courses, it is better to supply a session and a semaphore.
         :return:
         """
 
@@ -110,13 +109,13 @@ class AbstractShnatonCourseSupplier(ShnatonSupplierMixin, HujiObjectSupplier):
         :param course:
         :return:
         """
-        exam_supplier = ExamSupplier(course.course_id, self._year, session=self._session)
-        return await exam_supplier.supply()
+        exam_scraper = ExamScraper(course.course_id, self._year, session=self._session)
+        return await exam_scraper.scrape()
 
 
-class ShnatonCourseSupplier(AbstractShnatonCourseSupplier):
+class ShnatonCourseScraper(AbstractShnatonCourseScraper):
     """
-    Supplies courses from shnaton by id.
+    Scrapes courses from shnaton by id.
     """
 
     def __init__(self, course_ids: List[str], year: int, include_exams=True, **kwargs) -> None:
@@ -124,7 +123,7 @@ class ShnatonCourseSupplier(AbstractShnatonCourseSupplier):
         self._course_ids = course_ids
         self._html_to_course = HtmlToCourse()
 
-    async def _supply(self) -> AsyncIterator[Course]:
+    async def _scrape(self) -> AsyncIterator[Course]:
         coros = [self._collect_course(course_id) for course_id in self._course_ids]
         for task in asyncio.as_completed(coros):
             course = await task
@@ -137,7 +136,7 @@ class ShnatonCourseSupplier(AbstractShnatonCourseSupplier):
         return course
 
 
-class MaslulPageSupplier(AbstractShnatonCourseSupplier):
+class MaslulPageScraper(AbstractShnatonCourseScraper):
 
     def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: Toar = Toar.Any,
                  toar_year: ToarYear = ToarYear.Any, page: int = 1, include_exams=True,
@@ -151,7 +150,7 @@ class MaslulPageSupplier(AbstractShnatonCourseSupplier):
         self._page = page
         self._html_to_courses = HtmlPageToCourses()
 
-    async def _supply(self) -> AsyncIterator[Course]:
+    async def _scrape(self) -> AsyncIterator[Course]:
         fetcher = MaslulFetcher(self._year, self._faculty, self._hug, self._maslul, self._toar, self._toar_year,
                                 self._page, self._session)
         soup = await fetcher.acollect()
@@ -159,7 +158,7 @@ class MaslulPageSupplier(AbstractShnatonCourseSupplier):
             yield course
 
 
-class MaslulAllPageSupplier(AbstractShnatonCourseSupplier):
+class MaslulAllPageScraper(AbstractShnatonCourseScraper):
 
     def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: Toar = Toar.Any,
                  toar_year: ToarYear = ToarYear.Any, include_exams=True,
@@ -180,7 +179,7 @@ class MaslulAllPageSupplier(AbstractShnatonCourseSupplier):
         from_page, to_page = [int(number) for number in re.findall(r'\d+', page_info_text)]
         return from_page, to_page
 
-    async def _supply(self) -> AsyncIterator[Course]:
+    async def _scrape(self) -> AsyncIterator[Course]:
         # Collect the first page to find out the number of pages required
         first_page_fetcher = MaslulFetcher(self._year, self._faculty, self._hug, self._maslul, self._toar,
                                            self._toar_year, 1, self._session)
@@ -188,10 +187,10 @@ class MaslulAllPageSupplier(AbstractShnatonCourseSupplier):
         page_from, page_to = await self._get_page_bounds(first_page_soup)
 
         # Go over pages from the second page until the last one and collect them.
-        page_supplier_coros = [self._collect_page(page) for page in range(page_from + 1, page_to + 1)]
+        page_scraper_coros = [self._collect_page(page) for page in range(page_from + 1, page_to + 1)]
 
         yielded_course_ids = set()
-        for task in asyncio.as_completed(page_supplier_coros):
+        for task in asyncio.as_completed(page_scraper_coros):
             course_list = await task
             for course in self._yield_new_courses(course_list, yielded_course_ids):
                 yield course
@@ -220,23 +219,21 @@ class MaslulAllPageSupplier(AbstractShnatonCourseSupplier):
 
     async def _collect_page(self, page: int) -> List[Course]:
         """
-        Collects a page using the MaslulPageSupplier
+        Collects a single page,
         :param page: page to download
         :return: a list of courses
         """
-        # Only include exams as a part of the current supplier (so they are not added twice).
-        supplier = MaslulPageSupplier(self._year, self._faculty, self._hug, self._maslul,
-                                      self._toar, self._toar_year, page, include_exams=False, session=self._session)
+        # Only include exams as a part of the current scraper (so they are not added twice).
+        scraper = MaslulPageScraper(self._year, self._faculty, self._hug, self._maslul,
+                                     self._toar, self._toar_year, page, include_exams=False, session=self._session)
 
-        print(f"Requesting page: {page}")
-        course_list = await supplier.supply()
-        print(f"Page got: {page}")
+        course_list = await scraper.scrape()
         return course_list
 
 
-class ExamSupplier(ShnatonSupplierMixin, HujiObjectSupplier):
+class ExamScraper(ShnatonScraperMixin, HujiObjectScraper):
     """
-    Supplies the exam info html for a course.
+    Scrapes the exam info html for a course.
     """
 
     def __init__(self, course_id: str, year: int, **kwargs) -> None:
@@ -245,9 +242,7 @@ class ExamSupplier(ShnatonSupplierMixin, HujiObjectSupplier):
         self._year = year
         self._html_to_exams = HtmlToExams()
 
-    async def supply(self) -> List[Exam]:
+    async def scrape(self) -> List[Exam]:
         fetcher = ExamFetcher(self._course_id, self._year, self._session)
-        print(f"Requesting exam {self._course_id}")
         soup = await fetcher.acollect()
-        print(f"Got exam for {self._course_id}")
         return self._html_to_exams.convert(soup)
