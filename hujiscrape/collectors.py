@@ -39,7 +39,6 @@ class ShnatonFetcher:
                                                headers=self.headers,
                                                verify_ssl=False,
                                                allow_redirects=False)
-        print(f"A collect: {time.time() - before}, Response status: {response.status}")
         # todo: handle errors
         text = await response.text()
         self._soup = BeautifulSoup(text, 'html.parser')

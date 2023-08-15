@@ -198,11 +198,6 @@ class MaslulAllPageScraper(AbstractShnatonCourseScraper):
         # Remember to yield the remaining courses from the first page
         for course in self._yield_new_courses(HtmlPageToCourses().convert(first_page_soup), yielded_course_ids):
             yield course
-        # # Yield only unique courses
-        # new_courses = [course for course in course_list if course.course_id not in course_ids]
-        # for course in new_courses:
-        #     course_ids.add(course.course_id)
-        #     yield course
 
     def _yield_new_courses(self, course_list: List[Course],
                            yielded_course_ids: Set[str]) -> Generator[Course, None, None]:
@@ -225,7 +220,7 @@ class MaslulAllPageScraper(AbstractShnatonCourseScraper):
         """
         # Only include exams as a part of the current scraper (so they are not added twice).
         scraper = MaslulPageScraper(self._year, self._faculty, self._hug, self._maslul,
-                                     self._toar, self._toar_year, page, include_exams=False, session=self._session)
+                                    self._toar, self._toar_year, page, include_exams=False, session=self._session)
 
         course_list = await scraper.scrape()
         return course_list
