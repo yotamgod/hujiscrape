@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup, Tag, NavigableString
 
 from hujiscrape.huji_objects import HujiObject, Lesson, Course, Exam
 from hujiscrape.magics import PASSING_TYPE_IDX, LOCATION_IDX, TIME_IDX, DAY_IDX, SEMESTER_IDX, GROUP_IDX, \
-    LESSON_TYPE_IDX, LECTURER_IDX
+    LESSON_TYPE_IDX, LECTURER_IDX, Semester
 
 Bs4Obj = Union[BeautifulSoup, Tag, NavigableString]
 
@@ -104,7 +104,7 @@ class HtmlToCourse(HtmlToObject):
                         lesson_data_lists[PASSING_TYPE_IDX][lesson_idx],
                         lesson_data_lists[TIME_IDX][lesson_idx],
                         lesson_data_lists[DAY_IDX][lesson_idx],
-                        lesson_data_lists[SEMESTER_IDX][lesson_idx],
+                        Semester.from_text(lesson_data_lists[SEMESTER_IDX][lesson_idx]),
                         lesson_data_lists[GROUP_IDX][0],
                         lesson_data_lists[LESSON_TYPE_IDX][0],
                         # If there are no lecturers, return an empty list
@@ -118,7 +118,7 @@ class HtmlToCourse(HtmlToObject):
                       english_name=english_course_name,
                       hebrew_name=hebrew_course_name,
                       points=points,
-                      semester=semester,
+                      semester=Semester.from_text(semester),
                       language=language,
                       test_length=test_length,
                       test_type=test_type,

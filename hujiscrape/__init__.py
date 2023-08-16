@@ -9,6 +9,7 @@ from hujiscrape.scrapers import (
 from hujiscrape.magics import (
     Toar,
     ToarYear,
+    Semester
 )
 
 from hujiscrape.huji_objects import (
@@ -25,6 +26,7 @@ __all__ = [
     'MaslulAllPageScraper',
     'Toar',
     'ToarYear',
+    'Semester',
     'HujiObject',
     'Lesson',
     'Course',

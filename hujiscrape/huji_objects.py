@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
+from magics import Semester
+
 
 class HujiObject:
     pass
@@ -12,7 +14,7 @@ class Lesson(HujiObject):
     passing_type: str  # Meaning in campus / video taped etc...
     time: str
     day: str
-    semester: str
+    semester: Semester
     group: str
     type: str
     lecturers: List[str]
@@ -25,7 +27,7 @@ class Exam(HujiObject):
     notes: str
     location: str
     moed: str
-    semester: str
+    semester: Semester
 
 
 @dataclass(frozen=False)
@@ -35,7 +37,7 @@ class Course(HujiObject):
     english_name: str
     hebrew_name: str
     points: int
-    semester: str
+    semester: Semester
     language: str
     test_length: int
     test_type: str
