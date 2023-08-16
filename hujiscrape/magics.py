@@ -1,4 +1,3 @@
-# Shnaton page course verbosity
 import enum
 
 

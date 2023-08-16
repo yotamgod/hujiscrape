@@ -4,7 +4,7 @@ from typing import Optional
 import aiohttp as aiohttp
 from bs4 import BeautifulSoup
 
-from magics import Prisa, Toar, ToarYear
+from hujiscrape.magics import Prisa, Toar, ToarYear
 
 
 class ShnatonFetcher:

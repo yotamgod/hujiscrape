@@ -1,17 +1,17 @@
 from .__version__ import __description__, __title__, __version__
-from scrapers import (
+from hujiscrape.scrapers import (
     ExamScraper,
     ShnatonCourseScraper,
     MaslulPageScraper,
     MaslulAllPageScraper,
 )
 
-from magics import (
+from hujiscrape.magics import (
     Toar,
     ToarYear,
 )
 
-from huji_objects import (
+from hujiscrape.huji_objects import (
     HujiObject,
     Lesson,
     Course,
@@ -32,9 +32,9 @@ __all__ = [
     '__description__',
     '__title__',
     '__version__',
-    # 'html_to_object',
-    # 'scrapers',
-    # 'collectors',
-    # 'huji_objects',
-    # 'magics'
+    'html_to_object',
+    'scrapers',
+    'collectors',
+    'huji_objects',
+    'magics',
 ]

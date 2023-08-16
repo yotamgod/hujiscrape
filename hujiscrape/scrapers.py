@@ -5,10 +5,10 @@ from typing import Any, List, AsyncIterator, Tuple, Set, Generator
 import aiohttp
 from bs4 import BeautifulSoup
 
-from collectors import ShantonCourseFetcher, MaslulFetcher, ExamFetcher
-from html_to_object import HtmlToCourse, HtmlToExams, HtmlPageToCourses
-from huji_objects import Course, Exam
-from magics import Toar, ToarYear
+from hujiscrape.collectors import ShantonCourseFetcher, MaslulFetcher, ExamFetcher
+from hujiscrape.html_to_object import HtmlToCourse, HtmlToExams, HtmlPageToCourses
+from hujiscrape.huji_objects import Course, Exam
+from hujiscrape.magics import Toar, ToarYear
 
 
 class HujiObjectScraper:

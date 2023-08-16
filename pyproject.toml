@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hujiscrape_yotamgod"
-version = "0.0.1"
+dynamic = ["version"]
 authors = [
     { name = "Yotam Rosenmann", email = "yotam.pub@gmail.com" },
 ]
@@ -26,4 +26,4 @@ Source = "https://github.com/yotamgod/hujiscrape"
 path = "hujiscrape/__version__.py"
 
 [tool.hatch.build]
-exclude = ["dev", ".idea"]
+exclude = ["dev", ".idea", "venv"]

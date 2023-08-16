@@ -3,9 +3,9 @@ from typing import Union, List
 
 from bs4 import BeautifulSoup, Tag, NavigableString
 
-from huji_objects import HujiObject, Lesson, Course, Exam
-from magics import PASSING_TYPE_IDX, LOCATION_IDX, TIME_IDX, DAY_IDX, SEMESTER_IDX, GROUP_IDX, LESSON_TYPE_IDX, \
-    LECTURER_IDX
+from hujiscrape.huji_objects import HujiObject, Lesson, Course, Exam
+from hujiscrape.magics import PASSING_TYPE_IDX, LOCATION_IDX, TIME_IDX, DAY_IDX, SEMESTER_IDX, GROUP_IDX, \
+    LESSON_TYPE_IDX, LECTURER_IDX
 
 Bs4Obj = Union[BeautifulSoup, Tag, NavigableString]
 
