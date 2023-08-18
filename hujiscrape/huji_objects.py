@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from magics import Semester
+from hujiscrape.magics import Semester
 
 
 class HujiObject:

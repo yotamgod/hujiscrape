@@ -17,6 +17,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 license = { file = "LICENSE" }
+dependencies = [
+    "aiohttp~=3.8.5",
+    "beautifulsoup4~=4.12.2"
+]
 
 [project.urls]
 Homepage = "https://github.com/yotamgod/hujiscrape"
