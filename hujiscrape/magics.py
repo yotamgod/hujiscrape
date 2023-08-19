@@ -35,17 +35,11 @@ class Semester(enum.IntEnum):
     Summer = 5
     Yearly = 9
 
-    def __repr__(self) -> str:
-        return {
-            Semester.A: "סמסטר א'",
-            Semester.B: "סמסטר ב'",
-            Semester.AB: "סמסטר א' או/ו ב'",
-            Semester.Summer: "קיץ",
-            Semester.Yearly: "שנתי"
-        }[self]
+    def __str__(self):
+        return self.name
 
     @classmethod
-    def from_text(cls, text: str) -> Optional['Semester']:
+    def from_hebrew(cls, text: str) -> Optional['Semester']:
         """
         A method that returns an enum value for a given text.
         :return: an enum

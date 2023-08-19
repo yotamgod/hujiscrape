@@ -25,7 +25,6 @@ class HtmlToCourse(HtmlToObject):
         """
         Groups of lessons are in the same td and separated by <br> tags.
         This splits them all, returning the text in a list.
-        Will never return an empty list (will return an empty string).
         :param td_tag: td tag to split
         """
         assert td_tag.attrs.get('class') == ['courseDet', 'text'], "Invalid tag for lesson data."
@@ -79,7 +78,7 @@ class HtmlToCourse(HtmlToObject):
         detail_rows = details_table.find_all('tr')[1:]
         schedule_rows, note_rows = detail_rows[:-2], detail_rows[-2:]
         schedule = []
-        for row in schedule_rows:
+        for row_num, row in enumerate(schedule_rows):
             # Each row contains the information for a specific group and specific lesson type (targil, lecture..)
             lesson_tds = row.find_all('td')
             if not lesson_tds:
@@ -104,11 +103,12 @@ class HtmlToCourse(HtmlToObject):
                         lesson_data_lists[PASSING_TYPE_IDX][lesson_idx],
                         lesson_data_lists[TIME_IDX][lesson_idx],
                         lesson_data_lists[DAY_IDX][lesson_idx],
-                        Semester.from_text(lesson_data_lists[SEMESTER_IDX][lesson_idx]),
+                        Semester.from_hebrew(lesson_data_lists[SEMESTER_IDX][lesson_idx]),
                         lesson_data_lists[GROUP_IDX][0],
                         lesson_data_lists[LESSON_TYPE_IDX][0],
                         # If there are no lecturers, return an empty list
-                        lesson_data_lists[LECTURER_IDX]
+                        lesson_data_lists[LECTURER_IDX],
+                        row_num
                     )
                 )
 
@@ -118,7 +118,7 @@ class HtmlToCourse(HtmlToObject):
                       english_name=english_course_name,
                       hebrew_name=hebrew_course_name,
                       points=points,
-                      semester=Semester.from_text(semester),
+                      semester=Semester.from_hebrew(semester),
                       language=language,
                       test_length=test_length,
                       test_type=test_type,
@@ -145,6 +145,6 @@ class HtmlToExams(HtmlToObject):
         for tr in exam_table.find_all('tr')[4:]:
             exam_date, exam_hour, exam_notes, location, moed, semester = [td.text for td in tr.find_all('td')]
             exams.append(
-                Exam(exam_date, exam_hour, exam_notes, location, moed, semester)
+                Exam(exam_date, exam_hour, exam_notes, location, moed, Semester.from_hebrew(semester))
             )
         return exams

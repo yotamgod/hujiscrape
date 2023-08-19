@@ -16,8 +16,13 @@ class Lesson(HujiObject):
     day: str
     semester: Semester
     group: str
-    type: str
+    type: str  # Tirgul, Lecture...
     lecturers: List[str]
+
+    # The row where the lesson appeared in the shnaton.
+    # Helpful to know which lessons are considered the same (basically group + semester)
+    row: int
+
 
 
 @dataclass(frozen=True)
