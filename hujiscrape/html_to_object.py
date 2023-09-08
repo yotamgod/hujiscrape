@@ -88,8 +88,8 @@ class HtmlToCourse(HtmlToObject):
             # Extract the text lists from each of the tds
             lesson_data_lists = [self._list_text_in_lesson_td(td) for td in lesson_tds]
 
-            # Assume that the number of lessons in each group is equal to the number of locations
-            num_lessons = len(lesson_data_lists[0])
+            # Assume that the number of lessons in each group is equal to the number of "lesson types"
+            num_lessons = len(lesson_data_lists[LESSON_TYPE_IDX])
 
             # Pad lists with empty strings to match the number of lessons
             for idx in range(LOCATION_IDX, SEMESTER_IDX + 1):
