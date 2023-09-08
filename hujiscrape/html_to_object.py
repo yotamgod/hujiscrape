@@ -88,8 +88,9 @@ class HtmlToCourse(HtmlToObject):
             # Extract the text lists from each of the tds
             lesson_data_lists = [self._list_text_in_lesson_td(td) for td in lesson_tds]
 
-            # Assume that the number of lessons in each group is equal to the number of "lesson types"
-            num_lessons = len(lesson_data_lists[LESSON_TYPE_IDX])
+            # Assume that the number of lessons in each group is equal to the maximum of the fields that repeat
+            # Basically everything from location to semester.
+            num_lessons = max([len(sub_list) for sub_list in lesson_data_lists[LOCATION_IDX: SEMESTER_IDX + 1]])
 
             # Pad lists with empty strings to match the number of lessons
             for idx in range(LOCATION_IDX, SEMESTER_IDX + 1):
@@ -112,7 +113,8 @@ class HtmlToCourse(HtmlToObject):
                     )
                 )
 
-        hebrew_notes, english_notes = [row.find_next('td').text.strip() for row in note_rows] if note_rows else ['', '']
+            hebrew_notes, english_notes = [row.find_next('td').text.strip() for row in note_rows] if note_rows else ['',
+                                                                                                                     '']
         return Course(faculty=faculty,
                       course_id=course_id,
                       english_name=english_course_name,
