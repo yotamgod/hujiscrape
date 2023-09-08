@@ -113,8 +113,7 @@ class HtmlToCourse(HtmlToObject):
                     )
                 )
 
-            hebrew_notes, english_notes = [row.find_next('td').text.strip() for row in note_rows] if note_rows else ['',
-                                                                                                                     '']
+        hebrew_notes, english_notes = [row.find_next('td').text.strip() for row in note_rows] if note_rows else ['', '']
         return Course(faculty=faculty,
                       course_id=course_id,
                       english_name=english_course_name,
