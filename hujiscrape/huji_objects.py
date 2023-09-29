@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from functools import cached_property
+from typing import List, Optional, Tuple
 
 from hujiscrape.magics import Semester
 
@@ -11,7 +12,7 @@ class HujiObject:
 @dataclass(frozen=True)
 class Lesson(HujiObject):
     location: str
-    passing_type: str  # Meaning in campus / video taped etc...
+    passing_type: str  # Meaning in campus / videotaped etc...
     time: str
     day: str
     semester: Semester
@@ -23,6 +24,25 @@ class Lesson(HujiObject):
     # Helpful to know which lessons are considered the same (basically group + semester)
     row: int
 
+    @cached_property
+    def _split_time(self) -> Tuple[str, str]:
+        """
+        :return: self.time as a tuple of (start_time, end_time). If self.time == '', returns ('', '').
+        """
+        if not self.time:
+            return '', ''
+
+        # The format of the time field is <end_time>-<start_time>
+        end_time, start_time = self.time.split('-')
+        return start_time, end_time
+
+    @property
+    def start_time(self) -> str:
+        return self._split_time[0]
+
+    @property
+    def end_time(self) -> str:
+        return self._split_time[1]
 
 
 @dataclass(frozen=True)

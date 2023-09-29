@@ -56,6 +56,14 @@ class HtmlToCourse(HtmlToObject):
             continue
         return text_list
 
+    def _sort_lessons_by_day_and_time(self, lessons: List[Lesson]) -> List[Lesson]:
+        """
+        Returns a sorted copy of a list of lessons by day and time
+        :param lessons: list of lessons
+        :return: sorted list of lessons
+        """
+        return sorted(lessons, key=lambda lesson: (lesson.day, lesson.start_time, lesson.end_time))
+
     def convert(self, html: Bs4Obj) -> Course:
         faculty_div = html.find('div', class_='courseTitle')
         faculty = faculty_div.text.strip()
@@ -97,8 +105,9 @@ class HtmlToCourse(HtmlToObject):
                 lesson_data_lists[idx] += [''] * (num_lessons - len(lesson_data_lists[idx]))
 
             # Create lessons
+            row_lessons = []
             for lesson_idx in range(num_lessons):
-                schedule.append(
+                row_lessons.append(
                     Lesson(
                         lesson_data_lists[LOCATION_IDX][lesson_idx],
                         lesson_data_lists[PASSING_TYPE_IDX][lesson_idx],
@@ -112,6 +121,7 @@ class HtmlToCourse(HtmlToObject):
                         row_num
                     )
                 )
+            schedule += self._sort_lessons_by_day_and_time(row_lessons)
 
         hebrew_notes, english_notes = [row.find_next('td').text.strip() for row in note_rows] if note_rows else ['', '']
         return Course(faculty=faculty,
