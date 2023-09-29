@@ -30,4 +30,4 @@ Source = "https://github.com/yotamgod/hujiscrape"
 path = "hujiscrape/__version__.py"
 
 [tool.hatch.build]
-exclude = ["dev", ".idea", "venv"]
+exclude = ["dev", ".idea", "venv", ".github"]
