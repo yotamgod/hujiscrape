@@ -19,41 +19,6 @@ class HtmlToObject:
 
 class HtmlToCourse(HtmlToObject):
 
-    def _list_text_in_lesson_td(self, td_tag: Tag) -> List[str]:
-        """
-        Groups of lessons are in the same td and separated by <br> tags.
-        This splits them all, returning the text in a list.
-        :param td_tag: td tag to split
-        """
-        assert td_tag.attrs.get('class') == ['courseDet', 'text'], "Invalid tag for lesson data."
-        text_list = []
-
-        # Collect elements between <br> tags
-        for content in td_tag.contents:
-
-            if isinstance(content, NavigableString) and content.strip() != '':
-                # If the content is a string and not just \t or \n, append it.
-                text_list.append(content.strip())
-                continue
-
-            # If the content is a span, the correct value will either be in a <b> or the text itself
-            if getattr(content, 'name') == 'span':
-                content: Tag
-                # Second value in contents will be a NavigableString. If this doesn't include ... it is the correct one.
-                if '...' in content.contents[1].text:
-                    text_list.append(content.find_next('b').text.strip())
-                else:
-                    text_list.append(content.contents[1].text.strip())
-                continue
-
-            if getattr(content, 'name') == 'b':
-                text_list.append(content.text.strip())
-                continue
-
-            # Otherwise we aren't interested
-            continue
-        return text_list
-
     def _sort_lessons(self, lessons: List[Lesson]) -> List[Lesson]:
         """
         Returns a sorted copy of a list of lessons by semester, day, time, and other fields, to preserve the same

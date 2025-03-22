@@ -33,3 +33,4 @@ tqdm = "^4.67.1"
 [tool.poetry.group.dev.dependencies]
 poetry-core = "^2.1.1"
 pytest = "^8.3.5"
+snakeviz = "^2.2.2"

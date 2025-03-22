@@ -5,8 +5,6 @@ from typing import Optional
 import aiohttp as aiohttp
 from bs4 import BeautifulSoup
 
-from hujiscrape.magics import Prisa, Toar, ToarYear
-
 
 class ShnatonFetcher:
     """
@@ -27,7 +25,7 @@ class ShnatonFetcher:
 
         self._retries = retries
 
-        self._session: Optional[aiohttp.ClientSession] = session or aiohttp.ClientSession()
+        self._session: aiohttp.ClientSession = session or aiohttp.ClientSession()
 
         self._soup: Optional[BeautifulSoup] = None
 
@@ -38,15 +36,15 @@ class ShnatonFetcher:
                           'Chrome/114.0.0.0 Safari/537.36'
         }
 
-    async def acollect(self) -> Optional[BeautifulSoup]:
+    async def afetch(self) -> Optional[BeautifulSoup]:
 
-        response = await self._acollect_with_retries()
         # todo: handle errors
+        response = await self._afetch_with_retries()
         text = await response.text()
         self._soup = BeautifulSoup(text, 'html.parser')
         return self._soup
 
-    async def _acollect_with_retries(self) -> aiohttp.ClientResponse:
+    async def _afetch_with_retries(self) -> aiohttp.ClientResponse:
         for attempt in range(1, self._retries + 1):
             try:
                 return await self._session.request(
@@ -85,11 +83,11 @@ class ShantonCourseFetcher(ShnatonFetcher):
 
         super().__init__('POST', self.SHNATON_URL, data=data, session=session)
 
-    async def acollect(self) -> Optional[BeautifulSoup]:
+    async def afetch(self) -> Optional[BeautifulSoup]:
         """
         Returns the soup of the course page, or None if the course wasn't found.
         """
-        soup = await super().acollect()
+        soup = await super().afetch()
 
         # If a course wasn't found, it will be specified in the data-course-title div.
         course_not_found_text = "לא נמצא קורס"
@@ -97,30 +95,6 @@ class ShantonCourseFetcher(ShnatonFetcher):
             return None
 
         return soup
-
-
-class MaslulFetcher(ShnatonFetcher):
-    """
-    Returns a single page from a maslul search
-    """
-
-    SHNATON_URL = 'https://shnaton.huji.ac.il/index.php'
-
-    def __init__(self, year: int, faculty: str, hug: str, maslul: str, toar: Toar = Toar.Any,
-                 toar_year: ToarYear = ToarYear.Any, page: int = 1,
-                 session: aiohttp.ClientSession = None):
-        data = {
-            'peula': 'Advanced',
-            'year': year,
-            'faculty': faculty,
-            'hug': hug,
-            'maslul': maslul,
-            'prisa': Prisa.Maximal.value,
-            'toar': toar.value,
-            'shana': toar_year.value,
-            'starting': page
-        }
-        super().__init__('POST', self.SHNATON_URL, data=data, session=session)
 
 
 class ExamFetcher(ShnatonFetcher):

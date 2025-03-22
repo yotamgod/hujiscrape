@@ -2,8 +2,6 @@ from .__version__ import __description__, __title__, __version__
 from hujiscrape.scrapers import (
     ExamScraper,
     ShnatonByCourseIdScraper,
-    MaslulPageScraper,
-    MaslulAllPageScraper,
 )
 
 from hujiscrape.magics import (
@@ -22,8 +20,6 @@ from hujiscrape.huji_objects import (
 __all__ = [
     'ExamScraper',
     'ShnatonByCourseIdScraper',
-    'MaslulPageScraper',
-    'MaslulAllPageScraper',
     'Toar',
     'ToarYear',
     'Semester',
