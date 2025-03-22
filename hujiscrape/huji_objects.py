@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import List, Optional, Tuple
 
-from hujiscrape.magics import Semester
-
 
 class HujiObject:
     pass
@@ -15,7 +13,7 @@ class Lesson(HujiObject):
     passing_type: str  # Meaning in campus / videotaped etc...
     time: str
     day: str
-    semester: Semester
+    semester: str
     group: str
     type: str  # Tirgul, Lecture...
     lecturers: List[str]
@@ -29,11 +27,17 @@ class Lesson(HujiObject):
         """
         :return: self.time as a tuple of (start_time, end_time). If self.time == '', returns ('', '').
         """
-        if not self.time:
+        try:
+            # The format of the time field is <end_time>-<start_time>
+            end_time, start_time = self.time.split('-')
+        except ValueError:
             return '', ''
 
+        # if not self.time:
+        #     return '', ''
+
         # The format of the time field is <end_time>-<start_time>
-        end_time, start_time = self.time.split('-')
+        # end_time, start_time = self.time.split('-')
         return start_time, end_time
 
     @property
@@ -52,22 +56,26 @@ class Exam(HujiObject):
     notes: str
     location: str
     moed: str
-    semester: Semester
+    semester: str
 
 
 @dataclass(frozen=False)
 class Course(HujiObject):
-    faculty: str
     course_id: str
-    english_name: str
     hebrew_name: str
-    points: int
-    semester: Semester
+    english_name: str
+    department: str
+    faculty: str
+    semester: str
+    weekly_hours: int
+    credits: int
     language: str
-    test_length: int
-    test_type: str
+    exam_length: float
+    exam_type: str  # Project, written test, ...
     schedule: List[Lesson]
     exams: Optional[List[Exam]]
     hebrew_notes: str
     english_notes: str
     is_running: bool
+    syllabus_url: str
+    moodle_url: str

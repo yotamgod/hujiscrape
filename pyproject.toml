@@ -28,6 +28,7 @@ generate-setup-file = false
 python = ">=3.10,<4.0"
 beautifulsoup4 = "^4.13.3"
 aiohttp = "^3.11.14"
+tqdm = "^4.67.1"
 
 [tool.poetry.group.dev.dependencies]
 poetry-core = "^2.1.1"

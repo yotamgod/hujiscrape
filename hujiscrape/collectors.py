@@ -1,4 +1,5 @@
-import time
+import asyncio
+import random
 from typing import Optional
 
 import aiohttp as aiohttp
@@ -8,8 +9,13 @@ from hujiscrape.magics import Prisa, Toar, ToarYear
 
 
 class ShnatonFetcher:
+    """
+    A class that handles the requesting process to the Shanaton website.
+    This does not include the session handling, because different scraping processes might require different sessions.
+    """
+
     def __init__(self, method: str, url: str, headers: dict = None, data: dict = None, params: dict = None,
-                 session: aiohttp.ClientSession = None):
+                 session: aiohttp.ClientSession = None, retries: int = 3):
         self.method = method
         self.url = url
 
@@ -19,8 +25,9 @@ class ShnatonFetcher:
         headers = headers or {}
         self.headers = {**self._get_default_headers(), **headers}
 
-        self._session: Optional[
-            aiohttp.ClientSession] = session or aiohttp.ClientSession()
+        self._retries = retries
+
+        self._session: Optional[aiohttp.ClientSession] = session or aiohttp.ClientSession()
 
         self._soup: Optional[BeautifulSoup] = None
 
@@ -32,17 +39,29 @@ class ShnatonFetcher:
         }
 
     async def acollect(self) -> Optional[BeautifulSoup]:
-        before = time.time()
-        response = await self._session.request(self.method, self.url,
-                                               data=self.data,
-                                               params=self.params,
-                                               headers=self.headers,
-                                               verify_ssl=False,
-                                               allow_redirects=False)
+
+        response = await self._acollect_with_retries()
         # todo: handle errors
         text = await response.text()
         self._soup = BeautifulSoup(text, 'html.parser')
         return self._soup
+
+    async def _acollect_with_retries(self) -> aiohttp.ClientResponse:
+        for attempt in range(1, self._retries + 1):
+            try:
+                return await self._session.request(
+                    self.method, self.url,
+                    data=self.data,
+                    params=self.params,
+                    headers=self.headers,
+                    verify_ssl=False,
+                    allow_redirects=False
+                )
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                print(f"Request failed ({attempt}/{self._retries}): {e}")
+                if attempt == self._retries:
+                    raise e
+                await asyncio.sleep(2 ** attempt + random.uniform(0, 1))  # Exponential backoff
 
     @property
     def soup(self) -> Optional[BeautifulSoup]:
@@ -65,6 +84,19 @@ class ShantonCourseFetcher(ShnatonFetcher):
         }
 
         super().__init__('POST', self.SHNATON_URL, data=data, session=session)
+
+    async def acollect(self) -> Optional[BeautifulSoup]:
+        """
+        Returns the soup of the course page, or None if the course wasn't found.
+        """
+        soup = await super().acollect()
+
+        # If a course wasn't found, it will be specified in the data-course-title div.
+        course_not_found_text = "לא נמצא קורס"
+        if course_not_found_text in soup.find('div', class_='data-course-title').text.strip():
+            return None
+
+        return soup
 
 
 class MaslulFetcher(ShnatonFetcher):

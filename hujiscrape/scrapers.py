@@ -1,9 +1,12 @@
 import asyncio
 import re
-from typing import Any, List, AsyncIterator, Tuple, Set, Generator
+import traceback
+from asyncio import as_completed
+from typing import Any, List, AsyncIterator, Tuple, Set, Generator, Optional
 
 import aiohttp
 from bs4 import BeautifulSoup
+from tqdm.asyncio import tqdm
 
 from hujiscrape.collectors import ShantonCourseFetcher, MaslulFetcher, ExamFetcher
 from hujiscrape.html_to_object import HtmlToCourse, HtmlToExams, HtmlPageToCourses
@@ -55,6 +58,8 @@ class ShnatonScraperMixin(SessionScraperMixin):
         :param concurrent_requests: If a new session is created, limit on number of concurrent requests.
         """
         session = session or aiohttp.ClientSession(
+            # connect is the timeout for getting a connection from the pool.
+            timeout=aiohttp.ClientTimeout(connect=None),
             connector=aiohttp.TCPConnector(limit=concurrent_requests)
         )
         kwargs['session'] = session
@@ -67,11 +72,12 @@ class AbstractShnatonCourseScraper(ShnatonScraperMixin, HujiObjectScraper):
     Includes an option to add exams to output courses.
     """
 
-    def __init__(self, year: int, include_exams=True, **kwargs) -> None:
+    def __init__(self, year: int, include_exams: bool = True, show_progress: bool = False, **kwargs) -> None:
 
         super().__init__(**kwargs)
         self._year = year
         self._include_exams = include_exams
+        self._show_progress = show_progress
 
     async def scrape(self) -> List[Course]:
         courses = []
@@ -86,6 +92,7 @@ class AbstractShnatonCourseScraper(ShnatonScraperMixin, HujiObjectScraper):
                 exam_tasks.append(
                     asyncio.create_task(self._add_exams([course]))
                 )
+
         await asyncio.gather(*exam_tasks)
         return courses
 
@@ -103,7 +110,7 @@ class AbstractShnatonCourseScraper(ShnatonScraperMixin, HujiObjectScraper):
         for idx, result in enumerate(results):
             courses[idx].exams = result
 
-    async def _get_exams(self, course: Course):
+    async def _get_exams(self, course: Course) -> List[Exam]:
         """
         Returns the exams for a specific course.
         :param course:
@@ -113,7 +120,7 @@ class AbstractShnatonCourseScraper(ShnatonScraperMixin, HujiObjectScraper):
         return await exam_scraper.scrape()
 
 
-class ShnatonCourseScraper(AbstractShnatonCourseScraper):
+class ShnatonByCourseIdScraper(AbstractShnatonCourseScraper):
     """
     Scrapes courses from shnaton by id.
     """
@@ -124,15 +131,32 @@ class ShnatonCourseScraper(AbstractShnatonCourseScraper):
         self._html_to_course = HtmlToCourse()
 
     async def _scrape(self) -> AsyncIterator[Course]:
-        coros = [self._collect_course(course_id) for course_id in self._course_ids]
-        for task in asyncio.as_completed(coros):
+        coros = [self._fetch_course(course_id) for course_id in self._course_ids]
+        as_completed_method = as_completed if not self._show_progress else tqdm.as_completed
+        for task in as_completed_method(coros):
             course = await task
-            yield course
+            if course is not None:
+                yield course
 
-    async def _collect_course(self, course_id: str) -> Course:
+    async def _fetch_course(self, course_id: str) -> Optional[Course]:
+        """
+        Returns a single course object.
+        If the course is not found, returns None.
+        :param course_id: course id to scrape
+        :return: course object
+        """
         fetcher = ShantonCourseFetcher(course_id, self._year, self._session)
         soup = await fetcher.acollect()
-        course = self._html_to_course.convert(soup)
+        if soup is None:
+            return None
+
+        try:
+            course = self._html_to_course.convert(soup)
+        except Exception as e:
+            print(f'Failed to convert course {course_id}: {e}')
+            traceback.print_exc()
+            return None
+
         return course
 
 
