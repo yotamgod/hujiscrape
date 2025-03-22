@@ -32,7 +32,8 @@ __all__ = [
     '__version__',
     'html_to_object',
     'scrapers',
-    'collectors',
+    'fetchers',
+    'fetch_tasks',
     'huji_objects',
     'magics',
 ]
