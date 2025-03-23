@@ -1,9 +1,10 @@
 import asyncio
+from functools import partial
 from typing import List
 
 from tqdm.asyncio import tqdm
 
-from hujiscrape.fetch_tasks import CourseFetchTask
+from hujiscrape.fetch_tasks import CourseFetchTask, ExamFetchTask
 from hujiscrape.fetchers import Fetcher
 from hujiscrape.html_to_object import HtmlToCourse, HtmlToExams
 from hujiscrape.huji_objects import Course
@@ -37,19 +38,32 @@ class SingleCourseScraper(ShnatonScraper):
             include_exams: bool = True,
             show_progress: bool = False
     ) -> List[Course]:
-        as_completed_method = asyncio.as_completed if not show_progress else tqdm.as_completed
         courses = []
 
         async with self._fetcher:
             course_scrape_tasks = [
-                self._scrape_single_course(CourseFetchTask(course_id, year, fetch_exam=include_exams))
+                self._scrape_single_course(CourseFetchTask(course_id, year))
                 for course_id in course_ids
             ]
 
-            for scrape_coro in as_completed_method(course_scrape_tasks):
-                course = await scrape_coro
+            await_for_courses = asyncio.as_completed if not show_progress else partial(tqdm.as_completed,
+                                                                                       desc="Scraping courses")
+            for course_coro in await_for_courses(course_scrape_tasks):
+                course = await course_coro
                 if course is not None:
                     courses.append(course)
+
+            if include_exams:
+                exam_scrape_tasks = [
+                    self._attach_exams_to_course(course, year)
+                    for course in courses
+                ]
+
+                # Separate await so that there is a progress bar for each
+                await_for_exams = asyncio.as_completed if not show_progress else partial(tqdm.as_completed,
+                                                                                         desc="Scraping exams")
+                for exams_coro in await_for_exams(exam_scrape_tasks):
+                    await exams_coro
 
             return courses
 
@@ -71,9 +85,13 @@ class SingleCourseScraper(ShnatonScraper):
             raise
 
         # If the course has an exam task, add it as well.
-        if course_fetch_task.exam_fetch_task is not None:
-            exams_html = await self._fetcher.fetch(course_fetch_task.exam_fetch_task)
-            exams = self._exam_parser.convert(exams_html)
-            course.exams = exams
+        # if course_fetch_task.exam_fetch_task is not None:
+        #     exams_html = await self._fetcher.fetch(course_fetch_task.exam_fetch_task)
+        #     exams = self._exam_parser.convert(exams_html)
+        #     course.exams = exams
 
         return course
+
+    async def _attach_exams_to_course(self, course: Course, year: int) -> None:
+        exams_html = await self._fetcher.fetch(ExamFetchTask(course.course_id, year))
+        course.exams = self._exam_parser.convert(exams_html)

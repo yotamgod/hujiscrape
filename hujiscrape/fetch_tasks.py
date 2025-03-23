@@ -43,7 +43,7 @@ class ExamFetchTask(ShnatonFetchTask):
 
 
 class CourseFetchTask(ShnatonFetchTask):
-    def __init__(self, course_id: int | str, year: int, fetch_exam: bool = True):
+    def __init__(self, course_id: int | str, year: int):
         super().__init__(
             data={
                 'peula': 'Simple',
@@ -55,4 +55,3 @@ class CourseFetchTask(ShnatonFetchTask):
         )
         self.course_id = str(course_id)
         self.year = year
-        self.exam_fetch_task = ExamFetchTask(course_id, year) if fetch_exam else None
