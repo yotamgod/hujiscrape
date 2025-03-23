@@ -1,3 +1,6 @@
+import random
+
+
 class FetchTask:
     def __init__(self, url: str, method: str, data: dict = None, query_params: dict = None,
                  headers: dict = None) -> None:
@@ -16,10 +19,12 @@ class ShnatonFetchTask(FetchTask):
                          headers=self._get_default_headers())
 
     def _get_default_headers(self) -> dict:
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'
+        ]
         return {
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                          'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/114.0.0.0 Safari/537.36'
+            'user-agent': random.choice(user_agents),
         }
 
 
