@@ -1,5 +1,4 @@
 import asyncio
-import cProfile
 from typing import List
 
 from tqdm.asyncio import tqdm
@@ -47,15 +46,11 @@ class SingleCourseScraper(ShnatonScraper):
                 for course_id in course_ids
             ]
 
-            prof = cProfile.Profile()
-            prof.enable()
             for scrape_coro in as_completed_method(course_scrape_tasks):
                 course = await scrape_coro
                 if course is not None:
                     courses.append(course)
 
-            prof.disable()
-            prof.dump_stats("prof.prof")
             return courses
 
     async def _scrape_single_course(self, course_fetch_task: CourseFetchTask) -> Course | None:
