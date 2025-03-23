@@ -3,7 +3,7 @@ from typing import Union, List
 
 from bs4 import BeautifulSoup, Tag, NavigableString
 
-from huji_objects import HujiObject, Lesson, Course, Exam
+from hujiscrape.huji_objects import HujiObject, Lesson, Course, Exam
 
 Bs4Obj = Union[BeautifulSoup, Tag, NavigableString]
 

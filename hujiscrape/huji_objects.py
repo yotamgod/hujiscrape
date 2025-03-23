@@ -33,11 +33,6 @@ class Lesson(HujiObject):
         except ValueError:
             return '', ''
 
-        # if not self.time:
-        #     return '', ''
-
-        # The format of the time field is <end_time>-<start_time>
-        # end_time, start_time = self.time.split('-')
         return start_time, end_time
 
     @property

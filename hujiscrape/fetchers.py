@@ -3,7 +3,7 @@ import random
 
 import aiohttp
 
-from fetch_tasks import FetchTask
+from hujiscrape.fetch_tasks import FetchTask
 
 DEFAULT_MAX_CONCURRENCY = 100
 DEFAULT_TCP_SOCKET_LIMIT = 10

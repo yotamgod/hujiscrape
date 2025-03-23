@@ -1,4 +1,3 @@
-from .__version__ import __description__, __title__, __version__
 from hujiscrape.scrapers import (
     SingleCourseScraper
 )
@@ -16,6 +15,10 @@ from hujiscrape.huji_objects import (
     Exam,
 )
 
+from hujiscrape.fetchers import (
+    Fetcher
+)
+
 __all__ = [
     'Toar',
     'ToarYear',
@@ -24,10 +27,8 @@ __all__ = [
     'Lesson',
     'Course',
     'Exam',
+    'Fetcher',
     'SingleCourseScraper',
-    '__description__',
-    '__title__',
-    '__version__',
     'html_to_object',
     'scrapers',
     'fetchers',

@@ -3,10 +3,10 @@ from typing import List
 
 from tqdm.asyncio import tqdm
 
-from fetch_tasks import CourseFetchTask
-from fetchers import Fetcher
-from html_to_object import HtmlToCourse, HtmlToExams
-from huji_objects import Course
+from hujiscrape.fetch_tasks import CourseFetchTask
+from hujiscrape.fetchers import Fetcher
+from hujiscrape.html_to_object import HtmlToCourse, HtmlToExams
+from hujiscrape.huji_objects import Course
 
 
 class ShnatonScraper:
