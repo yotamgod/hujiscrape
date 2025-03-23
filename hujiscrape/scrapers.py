@@ -6,7 +6,7 @@ from tqdm.asyncio import tqdm
 from fetch_tasks import CourseFetchTask
 from fetchers import Fetcher
 from html_to_object import HtmlToCourse, HtmlToExams
-from hujiscrape import Course
+from huji_objects import Course
 
 
 class ShnatonScraper:
