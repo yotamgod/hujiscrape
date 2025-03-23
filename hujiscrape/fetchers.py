@@ -6,19 +6,21 @@ import aiohttp
 from fetch_tasks import FetchTask
 
 DEFAULT_MAX_CONCURRENCY = 100
+DEFAULT_TCP_SOCKET_LIMIT = 10
 
 
 class Fetcher:
-    def __init__(self, session: aiohttp.ClientSession = None, retries: int = 3, timeout: int | None = 10,
-                 max_concurrency: int | None = DEFAULT_MAX_CONCURRENCY):
+    def __init__(self, session: aiohttp.ClientSession = None, retries: int = 3, timeout: aiohttp.ClientTimeout = None,
+                 max_concurrency: int | None = DEFAULT_MAX_CONCURRENCY,
+                 tcp_socket_limit: int = DEFAULT_TCP_SOCKET_LIMIT):
         """
         Parameters are tuned to work with Shnaton scraping.
         """
         self._retries = retries
         self._session: aiohttp.ClientSession = session or aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(limit=min(DEFAULT_MAX_CONCURRENCY, 100))
+            connector=aiohttp.TCPConnector(limit=tcp_socket_limit)
         )
-        self._timeout = aiohttp.ClientTimeout(total=timeout)
+        self._timeout = timeout or aiohttp.ClientTimeout(total=60, sock_connect=5, sock_read=5)
         self._semaphore = asyncio.BoundedSemaphore(max_concurrency) if max_concurrency else None
 
     async def __aenter__(self):
@@ -54,7 +56,7 @@ class Fetcher:
                 response.raise_for_status()
                 return response
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-                print(f"Request failed ({attempt}/{self._retries}): {e}")
+                print(f"Request failed ({attempt}/{self._retries}): error type: {type(e)}, error msg: {e}")
                 if attempt == self._retries:
                     raise e
                 await asyncio.sleep(2 ** attempt + random.uniform(0, 1))  # Exponential backoff
