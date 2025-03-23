@@ -20,7 +20,7 @@ class Fetcher:
         self._session: aiohttp.ClientSession = session or aiohttp.ClientSession(
             connector=aiohttp.TCPConnector(limit=tcp_socket_limit)
         )
-        self._timeout = timeout or aiohttp.ClientTimeout(total=60, sock_connect=5, sock_read=5)
+        self._timeout = timeout or aiohttp.ClientTimeout(total=60, sock_connect=10, sock_read=10)
         self._semaphore = asyncio.BoundedSemaphore(max_concurrency) if max_concurrency else None
 
     async def __aenter__(self):
