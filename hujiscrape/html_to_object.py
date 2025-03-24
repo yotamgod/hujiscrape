@@ -107,7 +107,7 @@ class HtmlToCourse(HtmlToObject):
                                                                                                             class_='groups') else []
             semesters = [sem.text for sem in row.find('div', class_='semester').find_all('div')] if row.find('div',
                                                                                                              class_='semester') else []
-            days = [day.text for day in row.find('div', class_='days').find_all('div', class_='day')] if row.find('div',
+            days = [day.text.strip() for day in row.find('div', class_='days').find_all('div', class_='day')] if row.find('div',
                                                                                                                   class_='days') else []
             hours = [hour.text for hour in row.find('div', class_='hour').find_all('div') if
                      hour.text.strip()] if row.find('div', class_='hour') else []
