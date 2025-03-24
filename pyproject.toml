@@ -1,33 +1,36 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
 name = "hujiscrape"
-dynamic = ["version"]
+version = "1.0.0"
+description = "A scraping tool for HUJI sites."
 authors = [
     { name = "Yotam Rosenmann", email = "yotam.pub@gmail.com" },
 ]
-description = "A scraping tool for HUJI sites."
 readme = "README.md"
-requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 license = { file = "LICENSE" }
-dependencies = [
-    "aiohttp~=3.8.5",
-    "beautifulsoup4~=4.12.2"
-]
 
 [project.urls]
 Homepage = "https://github.com/yotamgod/hujiscrape"
 Source = "https://github.com/yotamgod/hujiscrape"
 
-[tool.hatch.version]
-path = "hujiscrape/__version__.py"
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-[tool.hatch.build]
-exclude = ["dev", ".idea", "venv", ".github"]
+[tool.poetry.build]
+generate-setup-file = false
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+beautifulsoup4 = "^4.13.3"
+aiohttp = "^3.11.14"
+tqdm = "^4.67.1"
+
+[tool.poetry.group.dev.dependencies]
+poetry-core = "^2.1.1"
+pytest = "^8.3.5"
+snakeviz = "^2.2.2"

@@ -1,9 +1,5 @@
-from .__version__ import __description__, __title__, __version__
 from hujiscrape.scrapers import (
-    ExamScraper,
-    ShnatonCourseScraper,
-    MaslulPageScraper,
-    MaslulAllPageScraper,
+    SingleCourseScraper
 )
 
 from hujiscrape.magics import (
@@ -19,11 +15,11 @@ from hujiscrape.huji_objects import (
     Exam,
 )
 
+from hujiscrape.fetchers import (
+    Fetcher
+)
+
 __all__ = [
-    'ExamScraper',
-    'ShnatonCourseScraper',
-    'MaslulPageScraper',
-    'MaslulAllPageScraper',
     'Toar',
     'ToarYear',
     'Semester',
@@ -31,12 +27,12 @@ __all__ = [
     'Lesson',
     'Course',
     'Exam',
-    '__description__',
-    '__title__',
-    '__version__',
+    'Fetcher',
+    'SingleCourseScraper',
     'html_to_object',
     'scrapers',
-    'collectors',
+    'fetchers',
+    'fetch_tasks',
     'huji_objects',
     'magics',
 ]

@@ -1,5 +1,5 @@
-from html_to_object import *
-from huji_objects import *
+from hujiscrape.html_to_object import *
+from hujiscrape.huji_objects import *
 
 
 def test_sorting_list_of_lessons():

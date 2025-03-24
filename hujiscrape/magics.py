@@ -50,7 +50,7 @@ class Semester(enum.IntEnum):
             "סמסטר א'": Semester.A,
             "סמסטר ב": Semester.B,
             "סמסטר ב'": Semester.B,
-            "סמסטר א' או/ו ב'": Semester.AB,
+            "סמסטר א' או / ו ב'": Semester.AB,
             "קיץ": Semester.Summer,
             "סמסטר קיץ": Semester.Summer,
             "שנתי": Semester.Yearly,
@@ -61,16 +61,6 @@ class Semester(enum.IntEnum):
 
         return semester
 
-
-# Lesson table indexes
-LOCATION_IDX = 0
-PASSING_TYPE_IDX = 1
-TIME_IDX = 2
-DAY_IDX = 3
-SEMESTER_IDX = 4
-GROUP_IDX = 5
-LESSON_TYPE_IDX = 6
-LECTURER_IDX = 7
 
 if __name__ == '__main__':
     a = Semester("סמסטר א'")
