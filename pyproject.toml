@@ -1,6 +1,6 @@
 [project]
 name = "hujiscrape"
-version = "1.0.0"
+version = "1.1.0"
 description = "A scraping tool for HUJI sites."
 authors = [
     { name = "Yotam Rosenmann", email = "yotam.pub@gmail.com" },
