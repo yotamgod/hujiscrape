@@ -6,19 +6,22 @@ import aiohttp
 from hujiscrape.fetch_tasks import FetchTask
 
 DEFAULT_MAX_CONCURRENCY = 100
-DEFAULT_TCP_SOCKET_LIMIT = 10
+DEFAULT_TCP_SOCKET_LIMIT = 20
 
 
 class Fetcher:
     def __init__(self, session: aiohttp.ClientSession = None, retries: int = 3, timeout: aiohttp.ClientTimeout = None,
                  max_concurrency: int | None = DEFAULT_MAX_CONCURRENCY,
-                 tcp_socket_limit: int = DEFAULT_TCP_SOCKET_LIMIT):
+                 tcp_socket_limit: int = DEFAULT_TCP_SOCKET_LIMIT, force_close_tcp: bool = False):
         """
         Parameters are tuned to work with Shnaton scraping.
+        :param force_close_tcp: There is a bug in aiohttp that causes the following error if force_close isn't true:
+                                error type: <class 'aiohttp.client_exceptions.ClientOSError'>, error msg: [Errno None]
+                                Can not write request body for URL
         """
         self._retries = retries
         self._session: aiohttp.ClientSession = session or aiohttp.ClientSession(
-            connector=aiohttp.TCPConnector(limit=tcp_socket_limit)
+            connector=aiohttp.TCPConnector(limit=tcp_socket_limit, force_close=force_close_tcp)
         )
         self._timeout = timeout or aiohttp.ClientTimeout(total=60, sock_connect=10, sock_read=10)
         self._semaphore = asyncio.BoundedSemaphore(max_concurrency) if max_concurrency else None
