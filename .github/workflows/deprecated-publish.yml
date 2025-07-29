@@ -6,6 +6,8 @@
 # separate terms of service, privacy policy, and support
 # documentation.
 
+# DEPRECATED - to build run 'poetry build' and 'poetry publish', with poetry publish -r testpypi if needed
+
 name: Upload Python Package
 
 on:
