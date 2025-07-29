@@ -99,8 +99,7 @@ class HtmlToCourse(HtmlToObject):
             lecturer_name_div = row.find('div', class_='lecturer-name')
             lecturers = []
             if lecturer_name_div and lecturer_name_div.text.strip():
-                lecturer_text = lecturer_name_div.text.strip().replace('\n', '')
-                lecturers = [lecturer_text]
+                lecturers = [line for line in lecturer_name_div.stripped_strings]
 
             # Get groups, semester, days, hours, lesson types
             groups = [group.text for group in row.find('div', class_='groups').find_all('div')] if row.find('div',

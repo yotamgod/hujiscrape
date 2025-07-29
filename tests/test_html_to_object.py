@@ -1,3 +1,4 @@
+from hujiscrape import Semester
 from hujiscrape.html_to_object import *
 from hujiscrape.huji_objects import *
 
