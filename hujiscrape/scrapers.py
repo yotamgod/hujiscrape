@@ -143,7 +143,7 @@ class SingleCourseScraper(ShnatonScraper):
                 )
 
         except Exception as e:
-            tqdm.write(f"Failed to convert course {course_fetch_task.course_id}: {e}")
+            tqdm.write(f"[WARNING] Failed to convert course {course_fetch_task.course_id}: {e}")
             return None
 
         return course
