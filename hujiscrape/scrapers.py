@@ -38,7 +38,7 @@ class SingleCourseScraper(ShnatonScraper):
     LONG_PARSE_THRESHOLD = 5.0  # seconds
 
     def __init__(
-        self, fetcher: Fetcher | None = None, max_cpu_workers: int | None = None
+            self, fetcher: Fetcher | None = None, max_cpu_workers: int | None = None
     ) -> None:
         """
         :param max_cpu_workers: Number of CPU processes. If None, uses os.cpu_count().
@@ -51,12 +51,12 @@ class SingleCourseScraper(ShnatonScraper):
         self._pool = ProcessPoolExecutor(max_workers=self._workers)
 
     async def scrape(
-        self,
-        course_ids: list[int | str],
-        year: int,
-        include_exams: bool = True,
-        show_progress: bool = False,
-        fail_after_n_missing_courses: int = 0,
+            self,
+            course_ids: list[int | str],
+            year: int,
+            include_exams: bool = True,
+            show_progress: bool = False,
+            fail_after_n_missing_courses: int = 0,
     ) -> List[Course]:
         courses = []
         failed_courses = 0
@@ -79,8 +79,8 @@ class SingleCourseScraper(ShnatonScraper):
                     if course is None:
                         failed_courses += 1
                         if (
-                            fail_after_n_missing_courses
-                            and failed_courses >= fail_after_n_missing_courses
+                                fail_after_n_missing_courses
+                                and failed_courses >= fail_after_n_missing_courses
                         ):
                             raise ValueError(
                                 f"Failed to fetch {failed_courses} courses"
@@ -109,7 +109,7 @@ class SingleCourseScraper(ShnatonScraper):
             return courses
 
     async def _scrape_single_course(
-        self, course_fetch_task: CourseFetchTask
+            self, course_fetch_task: CourseFetchTask
     ) -> Course | None:
         # Download course HTML
         try:

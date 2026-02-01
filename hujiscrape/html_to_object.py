@@ -18,7 +18,6 @@ class HtmlToObject:
 
 
 class HtmlToCourse(HtmlToObject):
-
     def _sort_lessons(self, lessons: List[Lesson]) -> List[Lesson]:
         """
         Returns a sorted copy of a list of lessons by semester, day, time, and other fields, to preserve the same
@@ -26,50 +25,67 @@ class HtmlToCourse(HtmlToObject):
         :param lessons: list of lessons
         :return: sorted list of lessons
         """
-        return sorted(lessons, key=lambda lesson: (lesson.semester, lesson.day, lesson.start_time, lesson.end_time,
-                                                   lesson.passing_type, lesson.location))
+        return sorted(
+            lessons,
+            key=lambda lesson: (
+                lesson.semester,
+                lesson.day,
+                lesson.start_time,
+                lesson.end_time,
+                lesson.passing_type,
+                lesson.location,
+            ),
+        )
 
     def convert(self, html_str: str) -> Course:
-        html = BeautifulSoup(html_str, 'html.parser')
+        html = BeautifulSoup(html_str, "html.parser")
 
         # Extract faculty and department
-        faculty_data = html.find('div', class_='data-school').text.strip()
-        faculty_parts = faculty_data.split(':')
+        faculty_data = html.find("div", class_="data-school").text.strip()
+        faculty_parts = faculty_data.split(":")
         faculty = faculty_parts[0].strip()
         department = faculty_parts[1].strip() if len(faculty_parts) > 1 else ""
 
         # Extract course details from the title section
-        course_id = html.find('div', class_='title').text.strip().split()[-1]
-        hebrew_course_name = html.find('div', class_='subtitle').text.strip()
-        english_course_name = html.find('div', class_='subtitle-eng').text.strip()
+        course_id = html.find("div", class_="title").text.strip().split()[-1]
+        hebrew_course_name = html.find("div", class_="subtitle").text.strip()
+        english_course_name = html.find("div", class_="subtitle-eng").text.strip()
 
         # Extract additional data
-        additional_data = html.find('div', class_='additional-data')
-        semester = additional_data.find('div', class_='additional-data-semester').text.strip()
+        additional_data = html.find("div", class_="additional-data")
+        semester = additional_data.find(
+            "div", class_="additional-data-semester"
+        ).text.strip()
         # semester = Semester.from_hebrew(semester_text)
 
-        weekly_hours_div = additional_data.find('div', class_='.additional-data-points')
-        weekly_hours = int(re.search(r'\d+', weekly_hours_div.text.strip()).group()) if weekly_hours_div else 0
+        weekly_hours_div = additional_data.find("div", class_=".additional-data-points")
+        weekly_hours = (
+            int(re.search(r"\d+", weekly_hours_div.text.strip()).group())
+            if weekly_hours_div
+            else 0
+        )
 
-        credits_text = additional_data.find('div', class_='additional-data-student-points').text.strip()
-        credit_points = int(re.search(r'\d+', credits_text).group())
+        credits_text = additional_data.find(
+            "div", class_="additional-data-student-points"
+        ).text.strip()
+        credit_points = int(re.search(r"\d+", credits_text).group())
 
         # Get test information
-        test_div = additional_data.find('div', class_='additional-data-test')
+        test_div = additional_data.find("div", class_="additional-data-test")
         test_info = test_div.text.strip() if test_div else ""
         exam_type = test_info
         exam_length = 0
-        if re.search(r'(\d+\.\d+)', test_info):
-            exam_length = float(re.search(r'(\d+\.\d+)', test_info).group())
+        if re.search(r"(\d+\.\d+)", test_info):
+            exam_length = float(re.search(r"(\d+\.\d+)", test_info).group())
 
         # Get language
-        language_div = additional_data.find('div', class_='additional-data-language')
+        language_div = additional_data.find("div", class_="additional-data-language")
         language = language_div.text.strip() if language_div else ""
 
         is_running = True  # Assuming course is running if it's in the system
 
         # Extract notes
-        notes_div = html.find('div', id='comments-course-NumCourse')
+        notes_div = html.find("div", id="comments-course-NumCourse")
         hebrew_notes = notes_div.text.strip() if notes_div else ""
         english_notes = ""  # Not found in the new format
 
@@ -92,31 +108,75 @@ class HtmlToCourse(HtmlToObject):
 
         # Extract schedule information
         schedule = []
-        rows = html.find_all('div', class_='row')
+        rows = html.find_all("div", class_="row")
 
         # Skip the title row
         for row_num, row in enumerate(rows[1:], 0):
-            lecturer_name_div = row.find('div', class_='lecturer-name')
+            lecturer_name_div = row.find("div", class_="lecturer-name")
             lecturers = []
             if lecturer_name_div and lecturer_name_div.text.strip():
                 lecturers = [line for line in lecturer_name_div.stripped_strings]
 
             # Get groups, semester, days, hours, lesson types
-            groups = [group.text for group in row.find('div', class_='groups').find_all('div')] if row.find('div',
-                                                                                                            class_='groups') else []
-            semesters = [sem.text for sem in row.find('div', class_='semester').find_all('div')] if row.find('div',
-                                                                                                             class_='semester') else []
-            days = [day.text.strip() for day in row.find('div', class_='days').find_all('div', class_='day')] if row.find('div',
-                                                                                                                  class_='days') else []
-            hours = [hour.text for hour in row.find('div', class_='hour').find_all('div') if
-                     hour.text.strip()] if row.find('div', class_='hour') else []
-            lesson_types = [lesson.text for lesson in row.find('div', class_='lesson').find_all('div')] if row.find(
-                'div', class_='lesson') else []
-            places = [place.text.strip() for place in
-                      row.find('div', class_='places').find_all('div', class_='place-item')] if row.find('div',
-                                                                                                         class_='places') else []
-            notes = [note.text.strip() for note in row.find('div', class_='note').find_all('div') if
-                     note.text.strip()] if row.find('div', class_='note') else []
+            groups = (
+                [
+                    group.text
+                    for group in row.find("div", class_="groups").find_all("div")
+                ]
+                if row.find("div", class_="groups")
+                else []
+            )
+            semesters = (
+                [sem.text for sem in row.find("div", class_="semester").find_all("div")]
+                if row.find("div", class_="semester")
+                else []
+            )
+            days = (
+                [
+                    day.text.strip()
+                    for day in row.find("div", class_="days").find_all(
+                        "div", class_="day"
+                    )
+                ]
+                if row.find("div", class_="days")
+                else []
+            )
+            hours = (
+                [
+                    hour.text
+                    for hour in row.find("div", class_="hour").find_all("div")
+                    if hour.text.strip()
+                ]
+                if row.find("div", class_="hour")
+                else []
+            )
+            lesson_types = (
+                [
+                    lesson.text
+                    for lesson in row.find("div", class_="lesson").find_all("div")
+                ]
+                if row.find("div", class_="lesson")
+                else []
+            )
+            places = (
+                [
+                    place.text.strip()
+                    for place in row.find("div", class_="places").find_all(
+                        "div", class_="place-item"
+                    )
+                ]
+                if row.find("div", class_="places")
+                else []
+            )
+            notes = (
+                [
+                    note.text.strip()
+                    for note in row.find("div", class_="note").find_all("div")
+                    if note.text.strip()
+                ]
+                if row.find("div", class_="note")
+                else []
+            )
 
             # Create lesson objects
             max_items = max(len(semesters), len(days), len(hours), len(places))
@@ -139,7 +199,7 @@ class HtmlToCourse(HtmlToObject):
                     group=group,
                     type=lesson_type,
                     lecturers=lecturers,
-                    row=row_num
+                    row=row_num,
                 )
                 schedule.append(lesson)
 
@@ -164,17 +224,19 @@ class HtmlToCourse(HtmlToObject):
             english_notes=english_notes,
             is_running=is_running,
             syllabus_url=syllabus_url,
-            moodle_url=moodle_url
+            moodle_url=moodle_url,
         )
 
 
 class HtmlToExams(HtmlToObject):
     def convert(self, html_str: str) -> List[Exam]:
-        html = BeautifulSoup(html_str, 'html.parser')
-        exam_table = html.find('table')
+        html = BeautifulSoup(html_str, "html.parser")
+        exam_table = html.find("table")
         exams = []
-        for tr in exam_table.find_all('tr')[1:]:
-            semester, moed, exam_date, exam_hour, location, exam_notes = [td.text for td in tr.find_all('td')]
+        for tr in exam_table.find_all("tr")[1:]:
+            semester, moed, exam_date, exam_hour, location, exam_notes = [
+                td.text for td in tr.find_all("td")
+            ]
             exams.append(
                 Exam(exam_date, exam_hour, exam_notes, location, moed, semester)
             )
