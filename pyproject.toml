@@ -33,6 +33,7 @@ dev = [
     "hatchling>=1.27.0",
     "pytest>=8.4.1,<9",
     "snakeviz>=2.2.2,<3",
+    "ruff>=0.14.14",
 ]
 
 [[tool.uv.index]]
